@@ -4,6 +4,7 @@
   "version": "2.0.0",
   "type": "module",
   "description": "A smart badminton matchmaking system with ELO-based balancing, automatic queuing, and statistics tracking.",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
