@@ -46,7 +46,7 @@ export const initialAppState: AppState = {
   stage: Stage.HOME,
   courtCount: 2,
   mode: MatchMode.MIXED,
-  strategy: SystemStrategy.ASSIST,
+  strategy: SystemStrategy.AUTO,
   hasGameStarted: false,
   sessionStartTime: 0,
   players: [],
