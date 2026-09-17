@@ -204,7 +204,7 @@ export const RunScreen: React.FC = () => {
         systemQueuedIds={systemQueuedIds}
         onConfirm={handleReplaceConfirm}
       />
-      <StatsModal isOpen={showStats} onClose={() => setShowStats(false)} players={state.players} />
+      <StatsModal isOpen={showStats} onClose={() => setShowStats(false)} players={state.players} activeMatches={state.activeMatches} />
       <HistoryModal isOpen={showHistory} onClose={() => setShowHistory(false)} history={state.history} />
       <NoScoreConfirmModal isOpen={!!noScoreModal} onConfirm={handleConfirmNoScore} onCancel={() => setNoScoreModal(null)} />
       <FinishConfirmModal

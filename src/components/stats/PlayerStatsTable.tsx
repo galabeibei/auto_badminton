@@ -4,17 +4,19 @@ import { formatDurationMinutes } from '../../lib/formatTime';
 import { formatRelationStats } from '../../lib/formatRelationStats';
 
 interface PlayerStatsTableProps {
-  /** Already sorted by the caller (both original screens sort by MMR descending). */
+  /** Already sorted by the caller. */
   players: Player[];
   allPlayers: Player[];
-  /** "lobby" (mid-game stats modal: adds a 上場中/休息 status column) or
+  /** "lobby" (mid-game stats modal: adds a 正在場上打球/正在場下等待 status column) or
    * "final" (end-of-game screen: adds rank + net MMR change + total points). */
   variant: 'lobby' | 'final';
+  /** lobby variant only: ids of players currently playing on a court. */
+  activePlayerIds?: Set<string>;
 }
 
 const winRate = (p: Player) => (p.matchesPlayed > 0 ? Math.round((p.wins / p.matchesPlayed) * 100) : 0);
 
-export const PlayerStatsTable: React.FC<PlayerStatsTableProps> = ({ players, allPlayers, variant }) => {
+export const PlayerStatsTable: React.FC<PlayerStatsTableProps> = ({ players, allPlayers, variant, activePlayerIds }) => {
   const isFinal = variant === 'final';
 
   return (
@@ -61,10 +63,10 @@ export const PlayerStatsTable: React.FC<PlayerStatsTableProps> = ({ players, all
             </td>
             {!isFinal && (
               <td className="p-3">
-                {p.isActive ? (
-                  <span className="text-green-600 text-xs bg-green-50 px-2 py-0.5 rounded-full">上場中</span>
+                {activePlayerIds?.has(p.id) ? (
+                  <span className="text-green-600 text-xs bg-green-50 px-2 py-0.5 rounded-full">正在場上打球</span>
                 ) : (
-                  <span className="text-slate-400 text-xs bg-slate-100 px-2 py-0.5 rounded-full">休息</span>
+                  <span className="text-slate-400 text-xs bg-slate-100 px-2 py-0.5 rounded-full">正在場下等待</span>
                 )}
               </td>
             )}
