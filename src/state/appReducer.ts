@@ -2,6 +2,7 @@ import {
   addToPlannedOrder,
   moveInPlannedOrder,
   prunePlannedOrder,
+  refreshMatchPlayers,
   removeFromPlannedOrder,
 } from '../domain';
 import { initialAppState, Stage } from './appState';
@@ -76,7 +77,9 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'MATCH_STARTED':
       return {
         ...state,
-        queue: state.queue.filter((m) => m.id !== action.match.id),
+        queue: state.queue
+          .filter((m) => m.id !== action.match.id)
+          .map((m) => refreshMatchPlayers(m, action.updatedPlayers)),
         plannedOrder: removeFromPlannedOrder(state.plannedOrder, action.match.id),
         activeMatches: [...state.activeMatches, action.match],
         players: action.updatedPlayers,
@@ -87,6 +90,10 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         activeMatches: state.activeMatches.filter((m) => m.id !== action.finishedMatch.id),
         history: [...state.history, action.finishedMatch],
+        // Other still-queued matches may share a player with the one that just
+        // finished - refresh their embedded copies so stats like MMR don't
+        // show a stale value until that match is itself sent to a court.
+        queue: state.queue.map((m) => refreshMatchPlayers(m, action.updatedPlayers)),
         players: action.updatedPlayers,
       };
 

@@ -5,6 +5,7 @@ import {
   checkPlayerConflict,
   createManualMatch,
   processNoScoreMatch,
+  refreshMatchPlayers,
   replacePlayerInMatch,
   swapPlayersInQueue,
 } from '../domain';
@@ -53,13 +54,9 @@ export const useRunLobbyActions = () => {
 
       const now = Date.now();
       const updatedPlayers = applyWaitTimeOnStart(state.players, match, now, state.sessionStartTime);
-      const refreshTeamPlayers = (teamPlayers: Player[]) =>
-        teamPlayers.map((tp) => updatedPlayers.find((p) => p.id === tp.id) ?? tp);
 
       const freshMatch: Match = {
-        ...match,
-        team1: { ...match.team1, players: refreshTeamPlayers(match.team1.players) },
-        team2: { ...match.team2, players: refreshTeamPlayers(match.team2.players) },
+        ...refreshMatchPlayers(match, updatedPlayers),
         status: MatchStatus.PLAYING,
         courtId: availableCourt,
         startTime: now,

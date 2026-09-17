@@ -106,6 +106,37 @@ describe('appReducer', () => {
       expect(next.players).toBe(updatedPlayers);
     });
 
+    it('MATCH_FINISHED refreshes a shared player’s stale data (e.g. MMR) in still-queued matches', () => {
+      // P2 is playing on court (about to finish) and is also already sitting
+      // in a different, still-queued suggested match - the exact scenario
+      // reported: that queued match kept showing P2's pre-match MMR forever.
+      const p2 = makeTestPlayer({ id: 'p2', name: 'P2', mmr: 1800 });
+      const activeMatch = makeTestMatch({
+        id: 'active',
+        players: [p2, makeTestPlayer({ id: 'p3' }), makeTestPlayer({ id: 'p4' }), makeTestPlayer({ id: 'p5' })],
+        startTime: 1000,
+        courtId: 1,
+      });
+      const queuedMatchWithSamePlayer = makeTestMatch({
+        id: 'queued',
+        players: [p2, makeTestPlayer({ id: 'p6' }), makeTestPlayer({ id: 'p7' }), makeTestPlayer({ id: 'p8' })],
+      });
+      const state = {
+        ...initialAppState,
+        activeMatches: [activeMatch],
+        queue: [queuedMatchWithSamePlayer],
+        players: [p2],
+      };
+
+      const finishedMatch = { ...activeMatch, endTime: 2000 };
+      const updatedPlayers = [{ ...p2, mmr: 1850 }];
+
+      const next = appReducer(state, { type: 'MATCH_FINISHED', finishedMatch, updatedPlayers });
+
+      const p2InQueue = next.queue[0].team1.players.find((p) => p.id === 'p2');
+      expect(p2InQueue?.mmr).toBe(1850);
+    });
+
     it('MATCH_RETURNED_TO_QUEUE moves a match from active back to the front of the queue', () => {
       const activeMatch = { ...queuedMatch, startTime: 1000, courtId: 1 };
       const state = { ...initialAppState, activeMatches: [activeMatch], queue: [] };
