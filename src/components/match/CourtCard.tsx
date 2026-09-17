@@ -25,11 +25,11 @@ export const CourtCard: React.FC<CourtCardProps> = ({
 }) => {
   return (
     <div
-      className={`rounded-xl border-2 transition-all overflow-hidden ${
+      className={`rounded-xl border-2 transition-all ${
         match ? 'bg-white border-blue-500 shadow-md' : 'bg-slate-50 border-dashed border-slate-300'
       }`}
     >
-      <div className={`p-3 flex justify-between items-center ${match ? 'bg-blue-500 text-white' : 'text-slate-400 bg-slate-100'}`}>
+      <div className={`p-3 flex justify-between items-center rounded-t-[10px] ${match ? 'bg-blue-500 text-white' : 'text-slate-400 bg-slate-100'}`}>
         <span className="font-bold flex items-center gap-2">
           <Flag size={18} /> 場地 {courtId}
         </span>
