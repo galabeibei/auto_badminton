@@ -16,7 +16,8 @@ coverage
 *.local
 
 # Local Claude Code dev-server launch config (hardcodes machine-specific paths)
-.claude/
+.claude/*
+!.claude/skills/
 
 # Logs
 npm-debug.log*
