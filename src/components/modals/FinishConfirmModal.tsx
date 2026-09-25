@@ -1,6 +1,7 @@
 import React from 'react';
 import { LogOut } from 'lucide-react';
 import { ConfirmModal } from '../ui/ConfirmModal';
+import { useCopy } from '../../hooks/useCopy';
 
 interface FinishConfirmModalProps {
   isOpen: boolean;
@@ -15,28 +16,37 @@ export const FinishConfirmModal: React.FC<FinishConfirmModalProps> = ({
   unfinishedCount,
   onConfirm,
   onCancel,
-}) => (
-  <ConfirmModal
-    isOpen={isOpen}
-    icon={<LogOut className="text-red-500" />}
-    title="確定要結算戰績嗎？"
-    accentBorderClassName="border-red-500"
-    description={
-      <>
-        系統將<span className="font-bold text-red-600">停止產生新賽程</span>，並進入最終戰績頁面。
-        {unfinishedCount > 0 && (
-          <>
-            <br />
-            目前場上/佇列尚有 <span className="font-bold text-red-600">{unfinishedCount}</span>{' '}
-            場未完成的比賽，這些場次不會計入最終戰績。
-          </>
-        )}
-      </>
-    }
-    confirmLabel="確認結算"
-    cancelLabel="繼續打球"
-    confirmVariant="danger"
-    onConfirm={onConfirm}
-    onCancel={onCancel}
-  />
-);
+}) => {
+  const { dialogs } = useCopy();
+  const [before, highlight, after] = dialogs.finishBody;
+  const [unfinishedBefore, unfinishedAfter] = dialogs.finishUnfinished;
+
+  return (
+    <ConfirmModal
+      isOpen={isOpen}
+      icon={<LogOut className="text-red-500" />}
+      title={dialogs.finishTitle}
+      accentBorderClassName="border-red-500"
+      description={
+        <>
+          {before}
+          <span className="font-bold text-red-600">{highlight}</span>
+          {after}
+          {unfinishedCount > 0 && (
+            <>
+              <br />
+              {unfinishedBefore}
+              <span className="font-bold text-red-600">{unfinishedCount}</span>
+              {unfinishedAfter}
+            </>
+          )}
+        </>
+      }
+      confirmLabel={dialogs.finishConfirm}
+      cancelLabel={dialogs.finishCancel}
+      confirmVariant="danger"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  );
+};

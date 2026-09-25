@@ -18,11 +18,13 @@ import { MessageModal } from '../components/ui/MessageModal';
 import type { MessageType } from '../components/ui/MessageModal';
 import { useAppState } from '../hooks/useAppState';
 import { Stage } from '../state/appState';
+import { useCopy } from '../hooks/useCopy';
 
 type ImportMode = 'text' | 'file' | 'url';
 
 export const PlayerListScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const copy = useCopy();
   const { players, courtCount, hasGameStarted } = state;
 
   const [newName, setNewName] = useState('');
@@ -133,8 +135,8 @@ export const PlayerListScreen: React.FC = () => {
           <Users size={24} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Step 3: 選手名單</h2>
-          <p className="text-slate-500 text-sm">輸入參與比賽的選手資料 (最少 4 人)</p>
+          <h2 className="text-xl font-bold text-slate-800">{copy.players.title}</h2>
+          <p className="text-slate-500 text-sm">{copy.players.subtitle}</p>
         </div>
       </div>
 
@@ -166,15 +168,15 @@ export const PlayerListScreen: React.FC = () => {
           />
         </div>
         <div className="pb-[1px]">
-          <Button onClick={addPlayer}>新增</Button>
+          <Button onClick={addPlayer}>{copy.players.add}</Button>
         </div>
       </div>
 
       <div className="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="text-slate-600 font-medium flex gap-4">
-          <span>總人數: {players.length}</span>
-          <span className="text-green-600">上場: {activeCount}</span>
-          <span className="text-slate-400">休息: {players.length - activeCount}</span>
+          <span>{copy.players.total}: {players.length}</span>
+          <span className="text-green-600">{copy.players.active}: {activeCount}</span>
+          <span className="text-slate-400">{copy.players.resting}: {players.length - activeCount}</span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -185,7 +187,7 @@ export const PlayerListScreen: React.FC = () => {
               onClick={generateTestPlayersHandler}
               className="text-purple-600 text-sm hover:bg-purple-100 transition-colors font-medium px-3 py-1.5 border-l border-purple-200 flex items-center gap-1"
             >
-              <Sparkles size={14} /> 產生測試選手
+              <Sparkles size={14} /> {copy.players.generateTest}
             </button>
           </div>
 
@@ -194,7 +196,7 @@ export const PlayerListScreen: React.FC = () => {
             onClick={() => setShowImport(!showImport)}
             className="text-blue-600 text-sm hover:underline flex items-center gap-1 font-medium bg-blue-50 px-3 py-2 rounded-lg"
           >
-            <Upload size={14} /> 批量匯入
+            <Upload size={14} /> {copy.players.bulkImport}
           </button>
         </div>
       </div>
@@ -296,7 +298,7 @@ export const PlayerListScreen: React.FC = () => {
 
       <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden max-h-[400px] overflow-y-auto mb-8">
         {players.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">尚無選手資料</div>
+          <div className="p-8 text-center text-slate-400">{copy.players.empty}</div>
         ) : (
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100 text-slate-600 font-medium border-b">
@@ -313,7 +315,7 @@ export const PlayerListScreen: React.FC = () => {
                 <tr key={p.id} className={`hover:bg-white transition-colors ${!p.isActive ? 'bg-slate-100 opacity-60' : ''}`}>
                   <td className="p-3 font-medium text-slate-800">{p.name}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${p.gender === Gender.MALE ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${p.gender === Gender.MALE ? 'bg-male-100 text-male-700' : 'bg-female-100 text-female-700'}`}>
                       {p.gender}
                     </span>
                   </td>
@@ -326,7 +328,7 @@ export const PlayerListScreen: React.FC = () => {
                       }`}
                     >
                       {p.isActive ? <PlayCircle size={14} /> : <PauseCircle size={14} />}
-                      {p.isActive ? '準備上場' : '休息中'}
+                      {p.isActive ? copy.players.statusActive : copy.players.statusResting}
                     </button>
                   </td>
                   <td className="p-3 text-right">
@@ -348,10 +350,10 @@ export const PlayerListScreen: React.FC = () => {
           disabled={hasGameStarted}
           title={hasGameStarted ? '比賽進行中，若需更改設定請先結束比賽' : undefined}
         >
-          回上一步
+          {copy.steps.back}
         </Button>
         <Button size="lg" disabled={activeCount < 4} onClick={() => dispatch({ type: 'GAME_STARTED', now: Date.now() })}>
-          {hasGameStarted ? '完成編輯 (回大廳)' : '下一步 (開始打球)'}
+          {hasGameStarted ? copy.players.nextWhileEditing : copy.players.next}
         </Button>
       </div>
     </div>

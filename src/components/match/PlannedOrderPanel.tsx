@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronDown, ChevronUp, ListOrdered, X } from 'lucide-react';
 import type { Match, QueueSlot } from '../../domain';
 import { MatchCard } from './MatchCard';
+import { useCopy } from '../../hooks/useCopy';
 
 interface PlannedOrderPanelProps {
   /** Already resolved to Match objects, in plan order (see `domain/plannedOrder.ts`). */
@@ -37,13 +38,14 @@ export const PlannedOrderPanel: React.FC<PlannedOrderPanelProps> = ({
   onRemove,
   onMove,
 }) => {
+  const copy = useCopy();
   if (plannedMatches.length === 0) return null;
 
   return (
     <div className="space-y-3">
       <h3 className="font-bold text-slate-700 flex items-center gap-2">
-        <ListOrdered size={18} className="text-emerald-600" /> 預排上場順序
-        <span className="text-xs text-slate-400 font-normal">（場地一空出就依此順序上場）</span>
+        <ListOrdered size={18} className="text-emerald-600" /> {copy.planned.title}
+        <span className="text-xs text-slate-400 font-normal">{copy.planned.hint}</span>
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {plannedMatches.map((m, index) => (
@@ -53,7 +55,6 @@ export const PlannedOrderPanel: React.FC<PlannedOrderPanelProps> = ({
             accent="blue"
             headerLabel={`${positionLabel(index)} ${m.modeLabel}`}
             isRecommended={nextPlayableId === m.id}
-            recommendedButtonLabel="立即上場"
             headerAction={
               <div className="flex items-center gap-1">
                 <button

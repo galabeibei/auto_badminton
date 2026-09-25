@@ -4,6 +4,7 @@ import type { Match } from '../../domain';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { MatchHistoryList } from '../stats/MatchHistoryList';
+import { useCopy } from '../../hooks/useCopy';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -12,12 +13,14 @@ interface HistoryModalProps {
 }
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history }) => {
+  const copy = useCopy();
+
   return (
     <Modal isOpen={isOpen} maxWidthClassName="max-w-4xl">
       <div className="p-6 max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <History /> 比賽歷史紀錄
+            <History /> {copy.dialogs.historyTitle}
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="關閉">
             <X size={24} />
@@ -27,7 +30,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
           <MatchHistoryList history={history} />
         </div>
         <div className="mt-6 flex justify-end">
-          <Button onClick={onClose}>關閉</Button>
+          <Button onClick={onClose}>{copy.dialogs.close}</Button>
         </div>
       </div>
     </Modal>

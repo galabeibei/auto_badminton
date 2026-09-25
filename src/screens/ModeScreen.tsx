@@ -5,6 +5,7 @@ import { MatchMode } from '../domain';
 import { Button } from '../components/ui/Button';
 import { useAppState } from '../hooks/useAppState';
 import { Stage } from '../state/appState';
+import { useCopy } from '../hooks/useCopy';
 
 interface ModeCardProps {
   isSelected: boolean;
@@ -34,6 +35,7 @@ const ModeCard: React.FC<ModeCardProps> = ({ isSelected, title, description, ico
 
 export const ModeScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const copy = useCopy();
   const setMode = (mode: MatchMode) => dispatch({ type: 'MODE_CHANGED', mode });
 
   return (
@@ -43,30 +45,30 @@ export const ModeScreen: React.FC = () => {
           <Settings size={24} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Step 2-1: 選擇對戰模式</h2>
-          <p className="text-slate-500 text-sm">選擇系統自動分組的邏輯</p>
+          <h2 className="text-xl font-bold text-slate-800">{copy.mode.title}</h2>
+          <p className="text-slate-500 text-sm">{copy.mode.subtitle}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <ModeCard
           isSelected={state.mode === MatchMode.SIMILAR}
-          title="A. 相近模式"
-          description="選擇積分相近的選手對戰，打造勢均力敵的比賽。"
+          title={copy.mode.similarTitle}
+          description={copy.mode.similarDescription}
           icon={Users}
           onClick={() => setMode(MatchMode.SIMILAR)}
         />
         <ModeCard
           isSelected={state.mode === MatchMode.BALANCED}
-          title="B. 平衡模式"
-          description="高分帶低分，確保兩隊總積分接近。"
+          title={copy.mode.balancedTitle}
+          description={copy.mode.balancedDescription}
           icon={Scale}
           onClick={() => setMode(MatchMode.BALANCED)}
         />
         <ModeCard
           isSelected={state.mode === MatchMode.MIXED}
-          title="C. 混合模式"
-          description="相近與平衡交替進行，依目前場次數自動平衡兩者比例。"
+          title={copy.mode.mixedTitle}
+          description={copy.mode.mixedDescription}
           icon={Shuffle}
           onClick={() => setMode(MatchMode.MIXED)}
         />
@@ -74,10 +76,10 @@ export const ModeScreen: React.FC = () => {
 
       <div className="flex justify-between">
         <Button variant="secondary" onClick={() => dispatch({ type: 'STAGE_CHANGED', stage: Stage.COURTS })}>
-          回上一步
+          {copy.steps.back}
         </Button>
         <Button size="lg" onClick={() => dispatch({ type: 'STAGE_CHANGED', stage: Stage.STRATEGY })}>
-          下一步 (選擇策略)
+          {copy.mode.next}
         </Button>
       </div>
     </div>

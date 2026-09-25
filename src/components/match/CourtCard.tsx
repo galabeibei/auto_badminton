@@ -3,6 +3,7 @@ import { Flag, HeartHandshake, LayoutGrid, RotateCcw, Slash } from 'lucide-react
 import type { Match } from '../../domain';
 import { Button } from '../ui/Button';
 import { PlayerIcon } from '../player/PlayerIcon';
+import { useCopy } from '../../hooks/useCopy';
 
 interface CourtCardProps {
   courtId: number;
@@ -23,15 +24,17 @@ export const CourtCard: React.FC<CourtCardProps> = ({
   onReturnToQueue,
   onNoScore,
 }) => {
+  const copy = useCopy();
+
   return (
     <div
       className={`rounded-xl border-2 transition-all ${
         match ? 'bg-white border-blue-500 shadow-md' : 'bg-slate-50 border-dashed border-slate-300'
       }`}
     >
-      <div className={`p-3 flex justify-between items-center rounded-t-[10px] ${match ? 'bg-blue-500 text-white' : 'text-slate-400 bg-slate-100'}`}>
+      <div className={`p-3 flex justify-between items-center rounded-t-[calc(var(--radius-xl)_-_2px)] ${match ? 'bg-blue-500 text-white' : 'text-slate-400 bg-slate-100'}`}>
         <span className="font-bold flex items-center gap-2">
-          <Flag size={18} /> 場地 {courtId}
+          <Flag size={18} /> {copy.court.name(courtId)}
         </span>
         {match && <span className="text-xs bg-white/20 px-2 py-0.5 rounded font-mono">S{match.sessionId + 1}</span>}
       </div>
@@ -45,14 +48,14 @@ export const CourtCard: React.FC<CourtCardProps> = ({
                   <PlayerIcon key={p.id} player={p} />
                 ))}
                 <Button onClick={onWinTeam1} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm mt-1">
-                  勝
+                  {copy.court.win}
                 </Button>
               </div>
               <div className="flex flex-col items-center gap-2 pt-8">
                 <div className="text-slate-300 italic font-black text-xl">VS</div>
-                <Button onClick={onDraw} variant="secondary" size="sm" className="text-xs px-2 h-8 text-slate-500" title="平手">
+                <Button onClick={onDraw} variant="secondary" size="sm" className="text-xs px-2 h-8 text-slate-500" title={copy.court.draw}>
                   <HeartHandshake size={16} className="mr-1 inline" />
-                  平手
+                  {copy.court.draw}
                 </Button>
               </div>
               <div className="flex-1 flex flex-col gap-2">
@@ -60,7 +63,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({
                   <PlayerIcon key={p.id} player={p} />
                 ))}
                 <Button onClick={onWinTeam2} className="bg-red-500 hover:bg-red-600 text-white shadow-sm mt-1">
-                  勝
+                  {copy.court.win}
                 </Button>
               </div>
             </div>
@@ -74,7 +77,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({
                   onClick={onReturnToQueue}
                   title="回到預備分組"
                 >
-                  <RotateCcw size={14} className="inline mr-1" /> 重排
+                  <RotateCcw size={14} className="inline mr-1" /> {copy.court.requeue}
                 </Button>
                 <Button
                   variant="secondary"
@@ -82,7 +85,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({
                   className="flex-1 text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200"
                   onClick={onNoScore}
                 >
-                  <Slash size={14} className="inline mr-1" /> 不計分
+                  <Slash size={14} className="inline mr-1" /> {copy.court.noScore}
                 </Button>
               </div>
             </div>
@@ -92,7 +95,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({
             <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-300">
               <LayoutGrid size={24} />
             </div>
-            <span>等待安排...</span>
+            <span>{copy.court.idle}</span>
           </div>
         )}
       </div>

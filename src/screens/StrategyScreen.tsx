@@ -5,6 +5,7 @@ import { SystemStrategy } from '../domain';
 import { Button } from '../components/ui/Button';
 import { useAppState } from '../hooks/useAppState';
 import { Stage } from '../state/appState';
+import { useCopy } from '../hooks/useCopy';
 
 /**
  * Every class string below is written out in full (rather than built with a
@@ -84,6 +85,7 @@ const StrategyCard: React.FC<StrategyCardProps> = ({ isSelected, colors, title, 
 
 export const StrategyScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const copy = useCopy();
   const setStrategy = (strategy: SystemStrategy) => dispatch({ type: 'STRATEGY_CHANGED', strategy });
 
   return (
@@ -93,8 +95,8 @@ export const StrategyScreen: React.FC = () => {
           <BrainCircuit size={24} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Step 2-2: 選擇系統策略</h2>
-          <p className="text-slate-500 text-sm">決定系統如何協助您進行分組</p>
+          <h2 className="text-xl font-bold text-slate-800">{copy.strategy.title}</h2>
+          <p className="text-slate-500 text-sm">{copy.strategy.subtitle}</p>
         </div>
       </div>
 
@@ -102,29 +104,29 @@ export const StrategyScreen: React.FC = () => {
         <StrategyCard
           isSelected={state.strategy === SystemStrategy.ASSIST}
           colors={STRATEGY_COLORS.orange}
-          title="輔助模式 (Assist)"
-          subtitle="彈性優先，即時填補"
+          title={copy.strategy.assistTitle}
+          subtitle={copy.strategy.assistSubtitle}
           icon={HelpingHand}
-          description="系統會持續監控佇列，當對戰組合不足時，自動「補上一場」建議對戰。適合喜歡頻繁手動分組，希望系統僅在空檔時提供協助的場景。缺點是若不常手動介入，分組多樣性較低（容易變成固定班底輪替）。"
+          description={copy.strategy.assistDescription}
           onClick={() => setStrategy(SystemStrategy.ASSIST)}
         />
         <StrategyCard
           isSelected={state.strategy === SystemStrategy.AUTO}
           colors={STRATEGY_COLORS.blue}
-          title="自動模式 (Auto)"
-          subtitle="多樣性優先，批次產生"
+          title={copy.strategy.autoTitle}
+          subtitle={copy.strategy.autoSubtitle}
           icon={Bot}
-          description="系統以「輪次 (Session)」為概念，一次產生涵蓋所有等待選手的對戰組合。此模式能最大化分組多樣性與公平性，適合全權交給系統安排。建議減少手動干預以維持最佳流暢度。"
+          description={copy.strategy.autoDescription}
           onClick={() => setStrategy(SystemStrategy.AUTO)}
         />
       </div>
 
       <div className="flex justify-between">
         <Button variant="secondary" onClick={() => dispatch({ type: 'STAGE_CHANGED', stage: Stage.MODE })}>
-          回上一步
+          {copy.steps.back}
         </Button>
         <Button size="lg" onClick={() => dispatch({ type: 'STAGE_CHANGED', stage: Stage.PLAYER_LIST })} className="flex items-center gap-2">
-          下一步 (輸入名單) <ArrowRight size={18} />
+          {copy.strategy.next} <ArrowRight size={18} />
         </Button>
       </div>
     </div>

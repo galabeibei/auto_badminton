@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import type { Match, QueueSlot } from '../../domain';
 import { Button } from '../ui/Button';
 import { PlayerIcon } from '../player/PlayerIcon';
+import { useCopy } from '../../hooks/useCopy';
 
 export type MatchCardAccent = 'purple' | 'orange' | 'blue';
 
@@ -72,13 +73,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   headerLabel,
   headerAction,
   isRecommended = false,
-  recommendedButtonLabel = '立即上場',
+  recommendedButtonLabel,
   plainLabel = false,
   selection,
   onPlayerClick,
   onPlayerLongPress,
   onGoToCourt,
 }) => {
+  const copy = useCopy();
   const classes = isRecommended ? RECOMMENDED_CLASSES : ACCENT_CLASSES[accent];
 
   return (
@@ -87,7 +89,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     >
       {isRecommended && (
         <div className="absolute -top-3 -right-3 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow flex items-center gap-1 animate-bounce">
-          <Sparkles size={12} /> 推薦上場
+          <Sparkles size={12} /> {copy.match.recommended}
         </div>
       )}
 
@@ -127,7 +129,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       </div>
 
       <Button onClick={onGoToCourt} className={`w-full text-white ${classes.button}`}>
-        {isRecommended ? recommendedButtonLabel : '上場'}
+        {isRecommended ? (recommendedButtonLabel ?? copy.match.goNow) : copy.match.goToCourt}
       </Button>
     </div>
   );

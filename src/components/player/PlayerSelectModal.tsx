@@ -113,7 +113,7 @@ export const PlayerSelectModal: React.FC<Props> = ({
                 >
                   <div
                     className={`p-1.5 rounded-full ${
-                      p.gender === Gender.MALE ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                      p.gender === Gender.MALE ? 'bg-male-100 text-male-600' : 'bg-female-100 text-female-600'
                     }`}
                   >
                     <User size={12} />

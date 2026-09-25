@@ -2,6 +2,7 @@ import React from 'react';
 import { Coffee, Users } from 'lucide-react';
 import type { Player } from '../../domain';
 import { formatDurationMinutes } from '../../lib/formatTime';
+import { useCopy } from '../../hooks/useCopy';
 
 interface WaitingListProps {
   players: Player[];
@@ -9,14 +10,16 @@ interface WaitingListProps {
 
 /** Assist mode only: shows who's waiting and in what order, with elapsed time since their last match. */
 export const WaitingList: React.FC<WaitingListProps> = ({ players }) => {
+  const copy = useCopy();
+
   return (
     <div className="space-y-3 pt-4 border-t border-slate-200">
       <h3 className="font-bold text-slate-600 flex items-center gap-2">
-        <Coffee size={20} className="text-slate-400" /> 候位 ({players.length})
+        <Coffee size={20} className="text-slate-400" /> {copy.waiting.title} ({players.length})
       </h3>
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-x-auto">
         {players.length === 0 ? (
-          <div className="text-slate-400 text-sm">全員皆在場上或已排程</div>
+          <div className="text-slate-400 text-sm">{copy.waiting.empty}</div>
         ) : (
           <div className="flex gap-4 min-w-max">
             {players.map((p, idx) => (
@@ -30,7 +33,7 @@ export const WaitingList: React.FC<WaitingListProps> = ({ players }) => {
                 <div className="text-center">
                   <div className="font-bold text-sm text-slate-700 truncate w-20">{p.name}</div>
                   <div className="text-[10px] text-slate-400">
-                    {p.lastMatchEndTime > 0 ? `${formatDurationMinutes((Date.now() - p.lastMatchEndTime) / 60000)}前` : '尚未上場'}
+                    {p.lastMatchEndTime > 0 ? `${formatDurationMinutes((Date.now() - p.lastMatchEndTime) / 60000)}前` : copy.waiting.neverPlayed}
                   </div>
                 </div>
               </div>

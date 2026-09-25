@@ -1,4 +1,6 @@
 export * from './useAppState';
+export * from './useTheme';
+export * from './useCopy';
 export * from './useMatchAnnouncer';
 export * from './useRunLobbyActions';
 export * from './useAssistQueueEngine';

@@ -8,6 +8,7 @@ import { PlanToggleButton } from '../../components/match/PlanToggleButton';
 import { useAppState } from '../../hooks/useAppState';
 import { useAutoQueueEngine } from '../../hooks/useAutoQueueEngine';
 import type { QueuePanelProps } from './RunScreen';
+import { useCopy } from '../../hooks/useCopy';
 
 /** Auto mode's queue area: manual groupings + session-grouped system suggestions, both highlighting the recommended match. */
 export const AutoQueuePanel: React.FC<QueuePanelProps> = ({
@@ -21,6 +22,7 @@ export const AutoQueuePanel: React.FC<QueuePanelProps> = ({
   showMessage,
 }) => {
   const { state } = useAppState();
+  const copy = useCopy();
   const { recommendedMatchId, autoAdjust } = useAutoQueueEngine({
     onStaleMatchesRemoved: () =>
       showMessage(
@@ -74,7 +76,7 @@ export const AutoQueuePanel: React.FC<QueuePanelProps> = ({
       {manualQueue.length > 0 && (
         <div className="space-y-3">
           <h3 className="font-bold text-slate-700 flex items-center gap-2">
-            <div className="w-2 h-6 bg-purple-500 rounded-full" /> 預備分組 (優先上場)
+            <div className="w-2 h-6 bg-purple-500 rounded-full" /> {copy.lobby.manualQueue}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {manualQueue.map((m) => (
@@ -105,18 +107,18 @@ export const AutoQueuePanel: React.FC<QueuePanelProps> = ({
 
       <div className="space-y-6">
         <h3 className="font-bold text-slate-700 flex items-center gap-2">
-          <div className="w-2 h-6 bg-blue-500 rounded-full" /> 系統建議對戰
-          <span className="text-xs text-slate-400 font-normal ml-2">(自動模式: 預先排程)</span>
+          <div className="w-2 h-6 bg-blue-500 rounded-full" /> {copy.lobby.suggested}
+          <span className="text-xs text-slate-400 font-normal ml-2">{copy.lobby.autoHint}</span>
         </h3>
 
         {systemQueue.length === 0 ? (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center text-slate-400 flex flex-col items-center gap-2">
             {activePlayerCount < 4 ? (
-              '候位人數不足 4 人，無法產生建議。'
+              copy.lobby.notEnoughPlayers
             ) : (
               <>
                 <Bot size={24} className="text-slate-300" />
-                <span>計算最佳對戰組合中...</span>
+                <span>{copy.lobby.computing}</span>
               </>
             )}
           </div>
@@ -127,12 +129,12 @@ export const AutoQueuePanel: React.FC<QueuePanelProps> = ({
                 <div className="flex items-center gap-3 text-yellow-800">
                   <AlertCircle className="shrink-0" />
                   <div>
-                    <p className="font-bold text-sm">所有分組均有球員仍在場上</p>
-                    <p className="text-xs text-yellow-700">您可以等待場上比賽結束，或讓系統微調分組以立即開始。</p>
+                    <p className="font-bold text-sm">{copy.lobby.allBusyTitle}</p>
+                    <p className="text-xs text-yellow-700">{copy.lobby.allBusyHint}</p>
                   </div>
                 </div>
                 <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white border-none shadow-sm whitespace-nowrap" onClick={handleAutoAdjust}>
-                  <Zap size={16} className="mr-1 inline" /> 系統自動微調
+                  <Zap size={16} className="mr-1 inline" /> {copy.lobby.autoAdjust}
                 </Button>
               </div>
             )}

@@ -21,6 +21,7 @@ import type { MatchResultSummary } from '../../hooks/useRunLobbyActions';
 import { Stage } from '../../state/appState';
 import { AssistQueuePanel } from './AssistQueuePanel';
 import { AutoQueuePanel } from './AutoQueuePanel';
+import { useCopy } from '../../hooks/useCopy';
 
 export interface QueuePanelProps {
   selection: QueueSlot | null;
@@ -36,6 +37,7 @@ export interface QueuePanelProps {
 
 export const RunScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const copy = useCopy();
   const lobby = useRunLobbyActions();
 
   const [selection, setSelection] = useState<QueueSlot | null>(null);
@@ -221,35 +223,35 @@ export const RunScreen: React.FC = () => {
         }`}
       >
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">🏆 比賽大廳</h2>
-          <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">{copy.lobby.title}</h2>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 mt-1 [&>span]:whitespace-nowrap">
             {isAssist ? (
               <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
-                <HelpingHand size={12} /> 輔助模式
+                <HelpingHand size={12} /> {copy.lobby.assistBadge}
               </span>
             ) : (
               <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
-                <Bot size={12} /> 自動模式
+                <Bot size={12} /> {copy.lobby.autoBadge}
               </span>
             )}
             <span className="w-1 h-1 rounded-full bg-slate-300" />
-            <span>場地: {state.courtCount}</span>
+            <span>{copy.lobby.courts}: {state.courtCount}</span>
             <span className="w-1 h-1 rounded-full bg-slate-300" />
-            <span>進行中: {state.activeMatches.length}</span>
+            <span>{copy.lobby.playing}: {state.activeMatches.length}</span>
             <span className="w-1 h-1 rounded-full bg-slate-300" />
             {isAssist ? (
-              <span>候位: {getAvailablePlayersSorted(state.players, state.activeMatches, state.queue).length}</span>
+              <span>{copy.lobby.waiting}: {getAvailablePlayersSorted(state.players, state.activeMatches, state.queue).length}</span>
             ) : (
-              <span>總人數: {state.players.length}</span>
+              <span>{copy.lobby.total}: {state.players.length}</span>
             )}
           </div>
         </div>
         <div className="flex gap-3 flex-wrap justify-center items-center">
           <Button variant="outline" onClick={() => dispatch({ type: 'STAGE_CHANGED', stage: Stage.PLAYER_LIST })} className="flex items-center gap-2">
-            <UserCog size={18} /> 調整名單
+            <UserCog size={18} /> {copy.lobby.editRoster}
           </Button>
           <Button onClick={() => setShowManualModal(true)} className="bg-purple-600 hover:bg-purple-700 text-white shadow-md flex items-center gap-2">
-            <PlusCircle size={18} /> 手動分組
+            <PlusCircle size={18} /> {copy.lobby.manualMatch}
           </Button>
           <div className="w-[1px] h-8 bg-slate-200 mx-1 hidden md:block" />
           <Button
@@ -266,7 +268,7 @@ export const RunScreen: React.FC = () => {
             <BarChart2 size={16} />
           </Button>
           <Button variant="danger" onClick={() => setShowFinishModal(true)}>
-            結算
+            {copy.lobby.finish}
           </Button>
         </div>
       </div>

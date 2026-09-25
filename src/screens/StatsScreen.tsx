@@ -6,9 +6,11 @@ import type { MessageType } from '../components/ui/MessageModal';
 import { PlayerStatsTable } from '../components/stats/PlayerStatsTable';
 import { MatchHistoryList } from '../components/stats/MatchHistoryList';
 import { useAppState } from '../hooks/useAppState';
+import { useCopy } from '../hooks/useCopy';
 
 export const StatsScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
+  const copy = useCopy();
   const [messageData, setMessageData] = useState<{ title: string; content: string; type: MessageType } | null>(null);
 
   const sortedPlayers = [...state.players].sort((a, b) => b.mmr - a.mmr);
@@ -32,12 +34,12 @@ export const StatsScreen: React.FC = () => {
       <div className="flex flex-col md:flex-row items-center justify-between border-b pb-4 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <BarChart2 className="text-blue-500" /> 最終戰績結算
+            <BarChart2 className="text-blue-500" /> {copy.stats.title}
           </h2>
-          <p className="text-slate-500">Step 5: 比賽統計</p>
+          <p className="text-slate-500">{copy.stats.subtitle}</p>
         </div>
         <Button variant="outline" onClick={handleSimpleCopy}>
-          <Copy size={16} className="mr-2 inline" /> 簡易複製
+          <Copy size={16} className="mr-2 inline" /> {copy.stats.copy}
         </Button>
       </div>
 
@@ -47,7 +49,7 @@ export const StatsScreen: React.FC = () => {
 
       <div className="pt-8 border-t">
         <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <History className="text-slate-500" /> 比賽歷程
+          <History className="text-slate-500" /> {copy.stats.history}
         </h3>
         <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
           <MatchHistoryList history={state.history} />
@@ -56,7 +58,7 @@ export const StatsScreen: React.FC = () => {
 
       <div className="mt-8 flex justify-center border-t pt-8">
         <Button type="button" onClick={() => dispatch({ type: 'GAME_RESET' })} variant="danger" size="lg">
-          <CheckSquare size={16} className="mr-2 inline" /> 完成 (清空回到首頁)
+          <CheckSquare size={16} className="mr-2 inline" /> {copy.stats.done}
         </Button>
       </div>
     </div>

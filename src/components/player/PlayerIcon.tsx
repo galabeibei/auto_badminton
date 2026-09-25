@@ -29,7 +29,7 @@ export const PlayerIcon: React.FC<PlayerIconProps> = ({ player, isSelected, onCl
     >
       <div
         className={`p-1 rounded-full shrink-0 ${
-          player.gender === Gender.MALE ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+          player.gender === Gender.MALE ? 'bg-male-100 text-male-600' : 'bg-female-100 text-female-600'
         }`}
       >
         <User size={14} />

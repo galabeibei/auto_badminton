@@ -8,6 +8,7 @@ import { WaitingList } from '../../components/match/WaitingList';
 import { useAppState } from '../../hooks/useAppState';
 import { useAssistQueueEngine } from '../../hooks/useAssistQueueEngine';
 import type { QueuePanelProps } from './RunScreen';
+import { useCopy } from '../../hooks/useCopy';
 
 /** Assist mode's queue area: manual groupings (plain), a single system suggestion with "换一组", and the waiting list. */
 export const AssistQueuePanel: React.FC<QueuePanelProps> = ({
@@ -21,6 +22,7 @@ export const AssistQueuePanel: React.FC<QueuePanelProps> = ({
   showMessage,
 }) => {
   const { state } = useAppState();
+  const copy = useCopy();
   const { refreshSuggestion } = useAssistQueueEngine();
 
   // Matches pinned into the pre-arranged order panel are rendered only there.
@@ -39,7 +41,7 @@ export const AssistQueuePanel: React.FC<QueuePanelProps> = ({
       {manualQueue.length > 0 && (
         <div className="space-y-3">
           <h3 className="font-bold text-slate-700 flex items-center gap-2">
-            <div className="w-2 h-6 bg-purple-500 rounded-full" /> 預備分組 (優先上場)
+            <div className="w-2 h-6 bg-purple-500 rounded-full" /> {copy.lobby.manualQueue}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {manualQueue.map((m) => (
@@ -69,12 +71,12 @@ export const AssistQueuePanel: React.FC<QueuePanelProps> = ({
 
       <div className="space-y-3">
         <h3 className="font-bold text-slate-700 flex items-center gap-2">
-          <div className="w-2 h-6 bg-orange-500 rounded-full" /> 系統建議對戰
+          <div className="w-2 h-6 bg-orange-500 rounded-full" /> {copy.lobby.suggested}
         </h3>
 
         {systemQueue.length === 0 ? (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center text-slate-400">
-            {availablePlayers.length < 4 ? '候位人數不足 4 人，無法產生建議。' : '計算最佳對戰組合中...'}
+            {availablePlayers.length < 4 ? copy.lobby.notEnoughPlayers : copy.lobby.computing}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -92,7 +94,7 @@ export const AssistQueuePanel: React.FC<QueuePanelProps> = ({
                       className="text-slate-400 hover:text-orange-600 flex items-center gap-1 hover:bg-orange-50 px-2 py-1 rounded transition-colors"
                       title="保留第一順位(錨點)，更換其他對手"
                     >
-                      <RefreshCw size={14} /> 換一組
+                      <RefreshCw size={14} /> {copy.lobby.reshuffle}
                     </button>
                   </div>
                 }

@@ -4,6 +4,7 @@ import type { MatchResultChange } from '../../domain';
 import type { MatchResultSummary } from '../../hooks/useRunLobbyActions';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { useCopy } from '../../hooks/useCopy';
 
 interface ResultModalProps {
   result: MatchResultSummary | null;
@@ -41,6 +42,7 @@ const TeamChangeList: React.FC<{ label: string; score: number; changes: MatchRes
 );
 
 export const ResultModal: React.FC<ResultModalProps> = ({ result, onClose }) => {
+  const copy = useCopy();
   if (!result) return null;
 
   const team1Ids = new Set(result.match.team1.players.map((p) => p.id));
@@ -54,15 +56,15 @@ export const ResultModal: React.FC<ResultModalProps> = ({ result, onClose }) => 
           <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
             <CheckCircle size={32} />
           </div>
-          <h3 className="text-2xl font-bold text-slate-800">比賽結束</h3>
-          <p className="text-slate-500 text-sm">積分已更新</p>
+          <h3 className="text-2xl font-bold text-slate-800">{copy.dialogs.resultTitle}</h3>
+          <p className="text-slate-500 text-sm">{copy.dialogs.resultSubtitle}</p>
         </div>
         <div className="space-y-4 mb-8">
           <TeamChangeList label="Team 1" score={result.score1} changes={team1Changes} />
           <TeamChangeList label="Team 2" score={result.score2} changes={team2Changes} />
         </div>
         <Button variant="secondary" className="w-full" onClick={onClose}>
-          確認
+          {copy.dialogs.resultConfirm}
         </Button>
       </div>
     </Modal>
