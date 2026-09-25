@@ -62,7 +62,16 @@ src/
 │   ├── useAssistQueueEngine.ts   #   Assist 模式：維持佇列 + 換一組
 │   ├── useAutoQueueEngine.ts     #   Auto 模式：維持佇列 + 推薦上場 + 自動微調
 │   ├── useMatchAnnouncer.ts      #   語音報名開關與播放（底層呼叫 lib/speech.ts）
-│   └── usePersistedAppState.ts   #   進站時偵測 localStorage 舊存檔、詢問是否回復、debounce 自動存檔
+│   ├── usePersistedAppState.ts   #   進站時偵測 localStorage 舊存檔、詢問是否回復、debounce 自動存檔
+│   ├── useTheme.ts               #   讀取目前主題 / 切換主題
+│   └── useCopy.ts                #   取得目前主題的畫面用語
+│
+├── theme/                       # 主題選擇（見 2.5 節）
+│   ├── themes.ts                 #   可選主題清單：id、名稱、說明、裝飾 emoji（打包進 app）
+│   ├── copy.ts                   #   各主題的畫面用語（經典用語 + 各主題覆寫）
+│   ├── themeTokens.ts            #   各主題的色盤/字型/圓角/陰影/背景圖樣，建置時由 tailwind.config.ts 轉成 CSS 變數
+│   ├── themeStorage.ts           #   主題偏好的 localStorage 讀寫、套用到 <html data-theme>
+│   └── ThemeProvider.tsx         #   React Context Provider
 │
 ├── lib/                         # 與畫面顯示相關但不屬於排點邏輯的小工具
 │   ├── speech.ts                 #   瀏覽器 SpeechSynthesis 包裝（原 utils/tts.ts）
@@ -74,6 +83,7 @@ src/
 │   ├── player/                  # PlayerIcon、PlayerSelectModal
 │   ├── match/                   # MatchCard（比賽卡片，Assist/Auto 共用）、CourtCard、CourtGrid、WaitingList
 │   ├── stats/                   # PlayerStatsTable、MatchHistoryList（Run 頁 Modal 與結算頁共用）
+│   ├── theme/                   # ThemePicker（Header 的主題選擇按鈕 + 主題圖庫）、ThemeDecorations（頁面邊緣裝飾）
 │   └── modals/                  # ResultModal、HistoryModal、StatsModal、NoScoreConfirmModal、FinishConfirmModal
 │
 ├── screens/                     # 對應 SPEC 第 2 節的 7 個 stage（原 stages/*.tsx，改名反映其為「畫面」而非「舞台」）
@@ -131,6 +141,27 @@ export function resolveMatchMode(
 - `clearState(): void`：在 `GAME_RESET`（Stats 頁按「完成」）時呼叫。
 
 `hooks/usePersistedAppState.ts`：App 掛載時檢查是否有舊存檔且 `stage !== 0`（代表上次意外中斷在比賽中），跳出 Modal 詢問「偵測到上次未完成的比賽紀錄，是否要回復？」，選「回復」→ dispatch 一個 `STATE_RESTORED` action 覆蓋 initial state；選「不用」→ 清除存檔、以全新狀態開始。存檔版本號（`v1`）寫進 key 名稱，未來若 `Player`/`Match` 型別改變，只需要換版本號即可讓舊格式自然失效，不需要寫遷移程式。
+
+### 2.5 主題選擇（CSS 變數換膚）
+
+Header 右側的「主題」按鈕可切換 11 種主題（經典預設在最前，其餘依名稱筆劃排序）：經典預設、打官司風、吃吃喝喝風、名偵探風、希臘神話風、科技風、保險業務風、旅遊風、麻將大師風、夢幻童話風、廢材風。點選主題即套用並關閉選單。主題會同時改變**配色**與**用語**。
+
+配色的做法是**讓既有的 Tailwind 顏色 class 全部改吃 CSS 變數**，而不是在每個元件裡寫主題判斷：
+
+- `tailwind.config.ts` 把元件用到的每個色系（`slate`、`blue`、`red`…）設定成 `rgb(var(--c-blue-600) / <alpha-value>)`，
+  `bg-white` 對應 `--c-surface`、`badminton-green` 對應 `--c-brand`，字型、`rounded-lg/xl/2xl`、`shadow-*` 也都改成變數。
+- `theme/themeTokens.ts` 定義每個主題的變數值，建置時由 Tailwind plugin 產生 `[data-theme="fairy"] { --c-blue-600: … }` 這樣的規則；
+  經典主題同時是 `:root` 的預設值，所以沒套主題時外觀與原本完全相同。
+- 切換主題只是改 `<html data-theme="…">`，因此元件完全不需要知道有主題存在；新增主題只要在 `themes.ts` + `themeTokens.ts` 各加一筆。
+- CSS 變數會從最近的祖先繼承，所以主題圖庫中的預覽卡片只要自己帶一個 `data-theme`，就會用真正的主題樣式畫出來，不需要另外維護一份色票。
+- 深色主題（科技風）的色盤用 `forDarkTheme()` 把淺色色階反轉，並設定 `color-scheme: dark`，讓原本的淺底深字 class 自動變成深底淺字。
+- 玩家性別徽章使用專屬的 `male` / `female` 色系，避免「主色是粉紅」的主題把男女都染成同色。
+- 主題偏好存在 `localStorage['badminton-matchmaker:theme']`，與比賽存檔分開：按「完成」清空比賽資料不會重設主題。
+
+用語的做法：`theme/copy.ts` 集中定義畫面上的主要文字（各步驟標題、按鈕、比賽大廳標籤、對話框標題與內文）。
+`CLASSIC_COPY` 就是原本的文字，其他主題只需覆寫想改的條目，沒覆寫的自動沿用經典用語；元件透過 `useCopy()` 取得目前主題的文字。
+語音報名也跟著主題：`copy.announcement` 提供選手名字前後的詞（開頭、兩隊之間、結尾），結尾可帶入場地號碼，由 `useMatchAnnouncer` 傳給 `domain/announcement.ts` 組句；經典主題維持原本的「請 A, B 與 C, D 上場」。
+刻意**不**跟著主題換的：錯誤/驗證訊息、匯入說明、表格欄位名稱與 aria-label——這些必須在任何主題下都清楚無歧義。
 
 ---
 

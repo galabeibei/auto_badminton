@@ -15,6 +15,7 @@
 - 語音報名上場（瀏覽器原生 Text-to-Speech）
 - 完整的積分升降、勝率、等待時間、同隊/對戰次數統計，以及比賽歷史紀錄
 - 瀏覽器重新整理不會遺失資料（自動存檔於 localStorage，重新載入時可選擇回復）
+- 主題選擇：經典預設、打官司風、吃吃喝喝風、名偵探風、希臘神話風、科技風、保險業務風、旅遊風、麻將大師風、夢幻童話風、廢材風，連畫面用語與語音報名都跟著主題換，點選即時套用並記住選擇
 
 ## 開發
 
@@ -36,7 +37,8 @@ src/
 ├── domain/     # 純商業邏輯（排點演算法、ELO 計算、CSV 解析…），不依賴 React，可獨立測試
 ├── state/      # 應用程式狀態機（單一 reducer + localStorage 持久化）
 ├── hooks/      # 連接 domain 與 React 生命週期的橋樑
-├── components/ # 共用 UI 元件（ui / player / match / stats / modals）
+├── theme/      # 主題定義（色盤、字型、背景），建置時轉成 CSS 變數，切換 <html data-theme> 即可換膚
+├── components/ # 共用 UI 元件（ui / player / match / stats / theme / modals）
 └── screens/    # 7 個精靈流程畫面（首頁 → 場地 → 模式 → 策略 → 名單 → 比賽大廳 → 結算）
 ```
 
