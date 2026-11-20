@@ -1,16 +1,20 @@
 import { getMatchPlayerIds } from './matchPlayers';
+import { rotationKey } from './tiebreak';
 import type { Match, Player } from './types';
 
 /**
  * Default fairness ordering shared by every matchmaking engine:
  * 1. Longest wait first (`lastMatchEndTime` ascending; 0 = never played = oldest).
  * 2. Fewest matches played first.
- * 3. Higher MMR first (a stable, low-impact tiebreaker).
+ * 3. A rating-neutral arbitrary order (see `tiebreak.ts`) - deliberately NOT
+ *    "higher MMR first", which made the weakest players the ones left waiting
+ *    whenever nothing else separated the queue (most of all at the start of a
+ *    game, when nobody has played yet).
  */
 export const byWaitPriority = (a: Player, b: Player): number => {
   if (a.lastMatchEndTime !== b.lastMatchEndTime) return a.lastMatchEndTime - b.lastMatchEndTime;
   if (a.matchesPlayed !== b.matchesPlayed) return a.matchesPlayed - b.matchesPlayed;
-  return b.mmr - a.mmr;
+  return rotationKey(a.id, 0) - rotationKey(b.id, 0);
 };
 
 /**

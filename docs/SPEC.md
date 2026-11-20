@@ -270,7 +270,12 @@ score = balancePenalty*2 + (p1History+p2History)*500 + oppHistory*50
    第 i 組（0-based）= [第 i*2 強, 第 i*2+1 強, 倒數第 i*2 弱, 倒數第 i*2+1 弱]
    ```
    即最強兩人分別配最弱兩人，次強兩人配次弱兩人，以此類推，讓每組「組內」強弱懸殊但「組間」總體戰力接近。
-5. 每組 4 人都丟進 `createOptimizedMatch`（5.5）決定怎麼分隊。
+5. **重新洗牌（`domain/sessionGrouping.ts`，重寫版新增）**：3/4 的切法只看積分，完全不管誰跟誰已經打過，導致固定名單下每個 session 都是同一批四人組（只有組內分隊在輪替）。所以切完之後再跑一次「爬山式」交換：只要把兩組的某兩人對調能降低總成本，就換，直到換不動為止（上限 30 回合）。單組成本 =
+   - **結構成本**：SIMILAR 看組內積分全距、BALANCED 看該組總戰力偏離各組平均多少。兩者都以「階（rung）」計價——一階 = 該 session 池子裡相鄰名次的平均積分差——所以不管社團積分集中或分散，取捨的尺度都一樣。
+   - **重複成本**：`getInteractionCost`（同隊 500／對戰 100，與 Assist 同一套）再加上「已經排在其他未上場賽程裡的同組」懲罰（300/次），避免接連兩個 session 把同一批人排在一起。
+   - 權重上，拆散一次重複同隊（500）大約只換得起一階的額外全距；另外 SIMILAR 模式有**硬上限**：任何一組的積分全距不得超過「原本純積分切法的最大全距 + 4 階」，所以不管累積多少重複歷史，都不會把最強跟最弱排進同一場。
+   - 沒有任何歷史（第一個 session）時，純積分切法本來就是最低成本，這一步不會改動任何東西。
+6. 每組 4 人都丟進 `createOptimizedMatch`（5.5）決定怎麼分隊。
 
 ### 5.9 自動模式的批次產生排程（`RunAuto.tsx` 的 `useEffect`，"LOGIC 3"）
 
@@ -285,8 +290,9 @@ score = balancePenalty*2 + (p1History+p2History)*500 + oppHistory*50
    1. queueCounts[player] 升冪（目前已經被排進多少個未來 session，越少的越優先）
    2. lastMatchEndTime 升冪
    3. matchesPlayed 升冪
-   4. mmr 降冪
+   4. 隨 sessionId 變動的 id 雜湊（`domain/tiebreak.ts`）
    ```
+   第 4 項原本是「mmr 降冪」，意思其實是「全部條件都相同時，積分低的先被晾在旁邊」：10 人 2 場地開局時，被排除在第一個 session 外的永遠是積分最低的那兩位。改成與實力無關的雜湊後順位仍然是確定的（畫面不會自己跳動），但每個 session 重新洗牌，誰輪空會跟著輪替。同一個修正也套用在 5.1 的共用排序 `byWaitPriority`。
 5. 對每個要新增的 session：
    - 若外層 mode 是 MIXED，這次 session 用哪個子模式是**單純依 `sessionId % 2`**：偶數 session 用 SIMILAR，奇數用 BALANCED（跟 5.6 的「比較歷史場次」邏輯不同——見文末決策紀錄，重寫版已統一改為場次計數邏輯）。
    - 呼叫 `generateSessionMatches` 產生這個 session 的所有場次。

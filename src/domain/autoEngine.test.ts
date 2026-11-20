@@ -64,6 +64,56 @@ describe('generateSessionMatches', () => {
 describe('planAutoSessionRefill', () => {
   const players = Array.from({ length: 8 }, (_, i) => makeTestPlayer({ id: `p${i}`, mmr: 1000 + i * 10 }));
 
+  it('plans each session with different quartets instead of repeating the first', () => {
+    const pool = Array.from({ length: 8 }, (_, i) => makeTestPlayer({ id: `p${i}`, mmr: 1800 - i * 50 }));
+
+    const { newMatches } = planAutoSessionRefill({
+      players: pool,
+      systemQueue: [],
+      history: [],
+      activeMatches: [],
+      mode: MatchMode.SIMILAR,
+      sessionCounter: 0,
+    });
+
+    const quartets = (sessionId: number) =>
+      newMatches
+        .filter((m) => m.sessionId === sessionId)
+        .map((m) => [...m.team1.players, ...m.team2.players].map((p) => p.id).sort().join(","))
+        .sort();
+
+    expect(quartets(0)).not.toEqual(quartets(1));
+  });
+
+  it('rotates who sits out when the pool does not divide by four', () => {
+    const pool = Array.from({ length: 10 }, (_, i) => makeTestPlayer({ id: `p${i}`, mmr: 1800 - i * 50 }));
+
+    const { newMatches } = planAutoSessionRefill({
+      players: pool,
+      systemQueue: [],
+      history: [],
+      activeMatches: [],
+      mode: MatchMode.SIMILAR,
+      sessionCounter: 0,
+    });
+
+    const benched = (sessionId: number) => {
+      const playing = new Set(
+        newMatches
+          .filter((m) => m.sessionId === sessionId)
+          .flatMap((m) => [...m.team1.players, ...m.team2.players].map((p) => p.id)),
+      );
+      return pool.filter((p) => !playing.has(p.id)).map((p) => p.id);
+    };
+
+    expect(benched(0)).toHaveLength(2);
+    expect(benched(1)).toHaveLength(2);
+    // Whoever sat out the first session gets to play the next one: ties used to
+    // be broken by rating, which benched the two weakest players every time.
+    expect(benched(1)).not.toEqual(benched(0));
+    expect(benched(0).some((id) => benched(1).includes(id))).toBe(false);
+  });
+
   it('does nothing when fewer than 4 active players exist', () => {
     const resting = players.map((p) => ({ ...p, isActive: false }));
     const result = planAutoSessionRefill({

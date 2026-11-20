@@ -19,6 +19,8 @@ export * from './recommendedMatch';
 export * from './plannedOrder';
 export * from './regroup';
 export * from './mmrInput';
+export * from './tiebreak';
+export * from './sessionGrouping';
 export * from './queueValidation';
 export * from './playerFactory';
 export * from './playerImport';

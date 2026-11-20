@@ -1,6 +1,8 @@
 import { AUTO_MODE_LABELS, AUTO_SESSION_BUFFER } from './constants';
 import { createOptimizedMatch } from './pairing';
 import { resolveMatchMode, type ResolvedMode } from './modeResolver';
+import { countPairGroupings, rebalanceSessionGroups } from './sessionGrouping';
+import { rotationKey } from './tiebreak';
 import { MatchMode } from './types';
 import type { Match, Player } from './types';
 
@@ -9,11 +11,17 @@ import type { Match, Player } from './types';
  * already sorted by priority. Works purely in chunks of 4 — any remainder
  * (pool size not divisible by 4) is left out and simply waits for the next
  * session. `mode` must already be resolved to SIMILAR or BALANCED.
+ *
+ * The MMR-derived chunks are only the starting point: `rebalanceSessionGroups`
+ * then swaps players between them to break up quartets that have already
+ * played together (or are already queued together in `pendingMatches`),
+ * without giving up the shape the mode asks for.
  */
 export const generateSessionMatches = (
   availablePlayers: Player[],
   mode: ResolvedMode,
   sessionId: number,
+  pendingMatches: Match[] = [],
 ): Match[] => {
   if (availablePlayers.length < 4) return [];
 
@@ -21,42 +29,50 @@ export const generateSessionMatches = (
   const pool = availablePlayers.slice(0, playableCount);
   const modeLabel = mode === MatchMode.SIMILAR ? AUTO_MODE_LABELS.SIMILAR : AUTO_MODE_LABELS.BALANCED;
 
-  const matches: Match[] = [];
   const sortedByMmr = [...pool].sort((a, b) => b.mmr - a.mmr);
+  const groups: Player[][] = [];
 
   if (mode === MatchMode.SIMILAR) {
     // Strongest play strongest, weakest play weakest: chunk adjacent players.
     for (let i = 0; i < sortedByMmr.length; i += 4) {
-      const chunk = sortedByMmr.slice(i, i + 4) as [Player, Player, Player, Player];
-      matches.push(createOptimizedMatch(chunk, modeLabel, mode, sessionId, false));
+      groups.push(sortedByMmr.slice(i, i + 4));
     }
   } else {
     // Fold method: pair the strongest with the weakest so each match's total
     // strength stays close across matches even though each match itself is lopsided.
     const groupCount = sortedByMmr.length / 4;
     for (let i = 0; i < groupCount; i++) {
-      const chunk: [Player, Player, Player, Player] = [
+      groups.push([
         sortedByMmr[i * 2],
         sortedByMmr[i * 2 + 1],
         sortedByMmr[sortedByMmr.length - 1 - i * 2],
         sortedByMmr[sortedByMmr.length - 1 - (i * 2 + 1)],
-      ];
-      matches.push(createOptimizedMatch(chunk, modeLabel, mode, sessionId, false));
+      ]);
     }
   }
 
-  return matches;
+  return rebalanceSessionGroups(groups, mode, countPairGroupings(pendingMatches)).map((group) =>
+    createOptimizedMatch(group as [Player, Player, Player, Player], modeLabel, mode, sessionId, false),
+  );
 };
 
-/** Priority order used to decide who gets planned into the next Auto session first. */
-const byAutoRefillPriority = (queueCounts: Map<string, number>) => (a: Player, b: Player) => {
-  const qA = queueCounts.get(a.id) || 0;
-  const qB = queueCounts.get(b.id) || 0;
-  if (qA !== qB) return qA - qB;
-  if (a.lastMatchEndTime !== b.lastMatchEndTime) return a.lastMatchEndTime - b.lastMatchEndTime;
-  if (a.matchesPlayed !== b.matchesPlayed) return a.matchesPlayed - b.matchesPlayed;
-  return b.mmr - a.mmr;
-};
+/**
+ * Priority order used to decide who gets planned into the next Auto session
+ * first - and, when the pool doesn't divide by 4, who sits this one out.
+ *
+ * The final tiebreak is deliberately rating-neutral and re-shuffled per
+ * session (`seed`): ranking ties by MMR meant the lowest-rated players were
+ * the ones benched every single time nothing else separated them.
+ */
+const byAutoRefillPriority =
+  (queueCounts: Map<string, number>, seed: number) => (a: Player, b: Player) => {
+    const qA = queueCounts.get(a.id) || 0;
+    const qB = queueCounts.get(b.id) || 0;
+    if (qA !== qB) return qA - qB;
+    if (a.lastMatchEndTime !== b.lastMatchEndTime) return a.lastMatchEndTime - b.lastMatchEndTime;
+    if (a.matchesPlayed !== b.matchesPlayed) return a.matchesPlayed - b.matchesPlayed;
+    return rotationKey(a.id, seed) - rotationKey(b.id, seed);
+  };
 
 export interface AutoRefillInput {
   players: Player[];
@@ -111,7 +127,7 @@ export const planAutoSessionRefill = ({
     });
   });
 
-  const sortedActivePlayers = [...activePlayers].sort(byAutoRefillPriority(queueCounts));
+  const sortedActivePlayers = [...activePlayers];
 
   // Everything already "on the books" is used to keep Similar/Balanced counts
   // even (decision D1): history + live courts + the existing queue, plus
@@ -123,7 +139,16 @@ export const planAutoSessionRefill = ({
     const sessionId = nextSessionId + i;
     const targetMode = resolveMatchMode(mode, [...recentMatches, ...newMatches]);
 
-    const batch = generateSessionMatches(sortedActivePlayers, targetMode, sessionId);
+    sortedActivePlayers.sort(byAutoRefillPriority(queueCounts, sessionId));
+
+    // Everything already booked - on court, queued, or planned a moment ago in
+    // this same refill - so this session doesn't re-group people who are
+    // about to play together anyway.
+    const batch = generateSessionMatches(sortedActivePlayers, targetMode, sessionId, [
+      ...activeMatches,
+      ...systemQueue,
+      ...newMatches,
+    ]);
     if (batch.length === 0) continue;
 
     newMatches.push(...batch);
@@ -132,7 +157,6 @@ export const planAutoSessionRefill = ({
         queueCounts.set(p.id, (queueCounts.get(p.id) || 0) + 1);
       });
     });
-    sortedActivePlayers.sort(byAutoRefillPriority(queueCounts));
   }
 
   return { newMatches, nextSessionCounter: nextSessionId + sessionsNeeded };

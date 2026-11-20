@@ -38,6 +38,8 @@ src/
 │   ├── modeResolver.ts         #   「混合模式」該解析成相近/平衡的統一邏輯（D1 決策）
 │   ├── assistEngine.ts         #   suggestNextMatch（輔助模式單場建議）
 │   ├── autoEngine.ts           #   generateSessionMatches + Auto 的候位排序/佇列規劃
+│   ├── sessionGrouping.ts      #   session 分組的重新洗牌（拆散重複組合，但保住模式本身的形狀）
+│   ├── tiebreak.ts             #   同分同等待時的公平排序（不用積分決勝負，並隨 session 輪轉）
 │   ├── autoAdjust.ts           #   自動微調換人邏輯
 │   ├── waitTime.ts             #   上場時的等待時間累計公式（從 UI 搬出來）
 │   ├── recommendedMatch.ts     #   Auto 模式「推薦上場」的判斷邏輯
