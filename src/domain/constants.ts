@@ -26,6 +26,10 @@ export const ASSIST_SUGGESTION_LIMIT = 1;
 /** Auto mode keeps this many upcoming sessions queued at once. */
 export const AUTO_SESSION_BUFFER = 2;
 
+/** Lowest / highest rating a human may type into a rating field. */
+export const MMR_MIN = 0;
+export const MMR_MAX = 5000;
+
 export const MODE_LABELS: Record<'SIMILAR' | 'BALANCED', string> = {
   SIMILAR: 'A. 相近',
   BALANCED: 'B. 平衡',

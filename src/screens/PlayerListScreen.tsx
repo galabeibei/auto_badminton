@@ -10,9 +10,20 @@ import {
   Upload,
   Users,
 } from 'lucide-react';
-import { Gender, convertGoogleSheetUrlToCsv, createPlayer, generateTestPlayers, parsePlayerCSV } from '../domain';
+import {
+  Gender,
+  MMR_MAX,
+  MMR_MIN,
+  MMR_RANGE_HINT,
+  convertGoogleSheetUrlToCsv,
+  createPlayer,
+  generateTestPlayers,
+  parseMmrInput,
+  parsePlayerCSV,
+} from '../domain';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { PlayerMmrInput } from '../components/player/PlayerMmrInput';
 import { ScrollPicker } from '../components/ui/ScrollPicker';
 import { MessageModal } from '../components/ui/MessageModal';
 import type { MessageType } from '../components/ui/MessageModal';
@@ -49,9 +60,9 @@ export const PlayerListScreen: React.FC = () => {
       showMessage('輸入錯誤', '請輸入選手姓名', 'warning');
       return;
     }
-    const mmrVal = parseInt(newMMR, 10);
-    if (isNaN(mmrVal) || mmrVal < 0 || mmrVal > 5000) {
-      showMessage('輸入錯誤', '請輸入合理的積分 (0 - 5000)', 'warning');
+    const mmrVal = parseMmrInput(newMMR);
+    if (mmrVal === null) {
+      showMessage('輸入錯誤', MMR_RANGE_HINT, 'warning');
       return;
     }
 
@@ -61,6 +72,7 @@ export const PlayerListScreen: React.FC = () => {
   };
 
   const removePlayer = (id: string) => dispatch({ type: 'PLAYER_REMOVED', playerId: id });
+  const changeMMR = (id: string, mmr: number) => dispatch({ type: 'PLAYER_MMR_CHANGED', playerId: id, mmr });
   const toggleActive = (id: string) => dispatch({ type: 'PLAYER_ACTIVE_TOGGLED', playerId: id });
 
   const generateTestPlayersHandler = () => {
@@ -163,8 +175,8 @@ export const PlayerListScreen: React.FC = () => {
             value={newMMR}
             onChange={(e) => setNewMMR(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addPlayer()}
-            min={0}
-            max={5000}
+            min={MMR_MIN}
+            max={MMR_MAX}
           />
         </div>
         <div className="pb-[1px]">
@@ -305,7 +317,7 @@ export const PlayerListScreen: React.FC = () => {
               <tr>
                 <th className="p-3 w-1/4">名稱</th>
                 <th className="p-3 w-16">性別</th>
-                <th className="p-3 w-20">積分</th>
+                <th className="p-3 w-28">積分</th>
                 <th className="p-3 w-32 text-center">狀態</th>
                 <th className="p-3 text-right">操作</th>
               </tr>
@@ -319,7 +331,14 @@ export const PlayerListScreen: React.FC = () => {
                       {p.gender}
                     </span>
                   </td>
-                  <td className="p-3 font-mono text-slate-600">{p.mmr}</td>
+                  <td className="p-3">
+                    <PlayerMmrInput
+                      playerName={p.name}
+                      mmr={p.mmr}
+                      onCommit={(mmr) => changeMMR(p.id, mmr)}
+                      onInvalid={() => showMessage('輸入錯誤', MMR_RANGE_HINT, 'warning')}
+                    />
+                  </td>
                   <td className="p-3 text-center">
                     <button
                       onClick={() => toggleActive(p.id)}

@@ -77,6 +77,96 @@ describe('appReducer', () => {
     });
   });
 
+  describe('hand-corrected ratings', () => {
+    const started = (overrides: Partial<AppState> = {}): AppState => ({
+      ...initialAppState,
+      hasGameStarted: true,
+      players: [makeTestPlayer({ id: 'p1', mmr: 1000, initialMmr: 1000 }), makeTestPlayer({ id: 'p2' })],
+      ...overrides,
+    });
+
+    it('PLAYER_MMR_CHANGED writes the new rating for the targeted player only', () => {
+      const next = appReducer(started(), { type: 'PLAYER_MMR_CHANGED', playerId: 'p1', mmr: 1350 });
+
+      expect(next.players.find((p) => p.id === 'p1')?.mmr).toBe(1350);
+      expect(next.players.find((p) => p.id === 'p2')?.mmr).toBe(1000);
+    });
+
+    it('PLAYER_MMR_CHANGED shifts initialMmr too, so the final stats still show only what was won on court', () => {
+      // p1 earned +30 on court (1000 -> 1030) before being corrected up to 1350.
+      const state = started({
+        players: [makeTestPlayer({ id: 'p1', mmr: 1030, initialMmr: 1000 })],
+      });
+
+      const next = appReducer(state, { type: 'PLAYER_MMR_CHANGED', playerId: 'p1', mmr: 1350 });
+      const p1 = next.players[0];
+
+      expect(p1.mmr).toBe(1350);
+      expect(p1.initialMmr).toBe(1320);
+      expect(p1.mmr - p1.initialMmr).toBe(30);
+    });
+
+    it('PLAYER_MMR_CHANGED refreshes the stale player copies inside queued and live matches', () => {
+      const p1 = makeTestPlayer({ id: 'p1', mmr: 1000 });
+      const others = [makeTestPlayer({ id: 'p2' }), makeTestPlayer({ id: 'p3' }), makeTestPlayer({ id: 'p4' })];
+      const state = started({
+        players: [p1, ...others],
+        queue: [makeTestMatch({ id: 'q1', players: [p1, ...others] })],
+        activeMatches: [makeTestMatch({ id: 'a1', players: [p1, ...others], courtId: 1 })],
+      });
+
+      const next = appReducer(state, { type: 'PLAYER_MMR_CHANGED', playerId: 'p1', mmr: 1400 });
+
+      expect(next.queue[0].team1.players[0].mmr).toBe(1400);
+      expect(next.activeMatches[0].team1.players[0].mmr).toBe(1400);
+    });
+
+    it('PLAYER_MMR_CHANGED asks for a regroup once the game is running, but not during setup', () => {
+      const midGame = appReducer(started(), { type: 'PLAYER_MMR_CHANGED', playerId: 'p1', mmr: 1350 });
+      expect(midGame.hasPendingMmrEdits).toBe(true);
+
+      const duringSetup = appReducer(started({ hasGameStarted: false }), {
+        type: 'PLAYER_MMR_CHANGED',
+        playerId: 'p1',
+        mmr: 1350,
+      });
+      expect(duringSetup.hasPendingMmrEdits).toBe(false);
+    });
+
+    it('PLAYER_MMR_CHANGED is a no-op for an unchanged rating or an unknown player', () => {
+      const state = started();
+
+      expect(appReducer(state, { type: 'PLAYER_MMR_CHANGED', playerId: 'p1', mmr: 1000 })).toBe(state);
+      expect(appReducer(state, { type: 'PLAYER_MMR_CHANGED', playerId: 'nobody', mmr: 1350 })).toBe(state);
+    });
+
+    it('REGROUP_APPLIED swaps in the regrouped queue, prunes the stale plan, and stops asking', () => {
+      const players = Array.from({ length: 4 }, (_, i) => makeTestPlayer({ id: 'p' + i }));
+      const manual = makeTestMatch({ id: 'manual', players, isManual: true });
+      const state = started({
+        hasPendingMmrEdits: true,
+        queue: [makeTestMatch({ id: 'system', players }), manual],
+        plannedOrder: ['system', 'manual'],
+      });
+
+      const next = appReducer(state, { type: 'REGROUP_APPLIED', queue: [manual] });
+
+      expect(next.queue.map((m) => m.id)).toEqual(['manual']);
+      expect(next.plannedOrder).toEqual(['manual']);
+      expect(next.hasPendingMmrEdits).toBe(false);
+    });
+
+    it('REGROUP_DISMISSED keeps the current queue and stops asking', () => {
+      const players = Array.from({ length: 4 }, (_, i) => makeTestPlayer({ id: 'p' + i }));
+      const state = started({ hasPendingMmrEdits: true, queue: [makeTestMatch({ id: 'system', players })] });
+
+      const next = appReducer(state, { type: 'REGROUP_DISMISSED' });
+
+      expect(next.queue).toBe(state.queue);
+      expect(next.hasPendingMmrEdits).toBe(false);
+    });
+  });
+
   describe('match lifecycle', () => {
     const players = Array.from({ length: 4 }, (_, i) => makeTestPlayer({ id: `p${i}` }));
     const queuedMatch = makeTestMatch({ id: 'm1', players });

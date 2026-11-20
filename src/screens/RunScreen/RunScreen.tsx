@@ -15,6 +15,7 @@ import { HistoryModal } from '../../components/modals/HistoryModal';
 import { ResultModal } from '../../components/modals/ResultModal';
 import { NoScoreConfirmModal } from '../../components/modals/NoScoreConfirmModal';
 import { FinishConfirmModal } from '../../components/modals/FinishConfirmModal';
+import { RegroupConfirmModal } from '../../components/modals/RegroupConfirmModal';
 import { useAppState } from '../../hooks/useAppState';
 import { useRunLobbyActions } from '../../hooks/useRunLobbyActions';
 import type { MatchResultSummary } from '../../hooks/useRunLobbyActions';
@@ -216,6 +217,11 @@ export const RunScreen: React.FC = () => {
         onCancel={() => setShowFinishModal(false)}
       />
       <ResultModal result={resultModal} onClose={() => setResultModal(null)} />
+      <RegroupConfirmModal
+        isOpen={state.hasPendingMmrEdits}
+        onConfirm={lobby.applyRegroup}
+        onCancel={lobby.dismissRegroup}
+      />
 
       <div
         className={`flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200 gap-4 border-l-8 ${

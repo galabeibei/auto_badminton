@@ -1,3 +1,4 @@
+import { initialAppState } from './appState';
 import type { AppState } from './appState';
 
 /**
@@ -45,7 +46,11 @@ export const loadState = (): AppState | null => {
       clearState();
       return null;
     }
-    return parsed.state;
+    // Layered over the defaults so a save written before a purely *additive*
+    // field existed still hydrates to a complete AppState instead of leaving
+    // that field `undefined` behind its non-optional type. Anything that
+    // changes an existing field's shape still needs a STORAGE_VERSION bump.
+    return { ...initialAppState, ...parsed.state };
   } catch {
     clearState();
     return null;

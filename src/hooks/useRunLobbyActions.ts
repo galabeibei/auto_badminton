@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import {
   applyMatchResult,
+  dropSystemMatches,
   applyWaitTimeOnStart,
   checkPlayerConflict,
   createManualMatch,
@@ -164,6 +165,21 @@ export const useRunLobbyActions = () => {
     [state.players, state.queue, dispatch],
   );
 
+  /**
+   * "重新安排分組" after ratings were corrected: throws away the suggestions
+   * that were computed from the old ratings so the Assist/Auto engine
+   * immediately plans fresh ones. Manual groupings and matches already on
+   * court are deliberately kept.
+   */
+  const applyRegroup = useCallback(() => {
+    dispatch({ type: 'REGROUP_APPLIED', queue: dropSystemMatches(state.queue) });
+  }, [state.queue, dispatch]);
+
+  /** "保留目前分組": keeps the existing suggestions and stops asking. */
+  const dismissRegroup = useCallback(() => {
+    dispatch({ type: 'REGROUP_DISMISSED' });
+  }, [dispatch]);
+
   const togglePlanned = useCallback(
     (matchId: string) => {
       if (state.plannedOrder.includes(matchId)) {
@@ -193,6 +209,8 @@ export const useRunLobbyActions = () => {
     deleteManualMatch,
     trySwapPlayers,
     replacePlayer,
+    applyRegroup,
+    dismissRegroup,
     togglePlanned,
     movePlanned,
   };

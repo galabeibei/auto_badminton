@@ -37,6 +37,7 @@ App 是一個以 `stage: number` 驅動的精靈式（wizard）單頁流程，�
 **返回名單頁的特殊規則**：從 Stage 5 按「調整名單」會回到 Stage 4（PlayerList），此時 `hasGameStarted=true`：
 - 「回上一步」按鈕會被 disable（比賽開始後不能再改場地數/模式/策略）。
 - 「下一步」按鈕文字變成「完成編輯 (回大廳)」。
+- 若在這裡改過任何人的積分，回到大廳會跳出「有選手積分修改，是否要重新安排分組？」（見 11.3）。
 
 **結束比賽**：Stage 5 內按「結算」→ 二次確認 Modal → 進入 Stage 6。Stage 6 按「完成」會呼叫 `fullReset()`，清空所有 state（players、queue、activeMatches、history、sessionCounter、courtCount 回 2、mode 回 MIXED、strategy 回 ASSIST）並回到 Stage 0。
 
@@ -113,6 +114,9 @@ interface Match {
    - 積分 `1000 + random(0~799)` 均勻分布。
    - 性別 60% 男 / 40% 女（`Math.random() > 0.4 ? 男 : 女`）。
 4. **選手列表操作**：
+   - **修改積分**：列表的「積分」欄是可直接編輯的輸入框（`PlayerMmrInput`），按 Enter 或移開焦點寫入，按 Esc 取消；範圍同新增（0–5000），超出範圍或非數字會跳警告 Modal 並還原原值，留白則視為取消、不跳訊息。
+     寫入時 `initialMmr` 會同步位移相同幅度，所以結算頁的「漲跌」仍然只反映場上實際打出來的升降，不會把這次人工修正算進去；佇列中與場上比賽內的選手快照也會一起更新成新積分。
+     比賽開始後（`hasGameStarted`）的修改會讓大廳跳出重新分組的詢問（見 11.3）。
    - 「上場中 / 休息中」開關（`isActive` 切換）：休息中的人完全不進入排點運算，也不會出現在候位清單。
    - 刪除選手（垃圾桶圖示，無需確認）。
    - 表頭統計：總人數 / 上場人數 / 休息人數。
@@ -349,7 +353,12 @@ score = balancePenalty*2 + (p1History+p2History)*500 + oppHistory*50
    - 元件卸載時 `cancelSpeech()`（`window.speechSynthesis.cancel()`）避免殘留語音佇列。
 6. **音效開關按鈕**：純粹是否唸報名，不影響任何排點邏輯。
 7. **「調整名單」按鈕**：回 Stage 4（`onBack`），比賽資料（queue/activeMatches/history/sessionCounter）全部保留，回來後可以繼續。
-8. **「結算」按鈕**：二次確認 Modal → `onFinish` 進 Stage 6。**不會自動把還在場上的比賽結掉**——只是停止畫面繼續產生新建議，若使用者結算時還有人在場上/佇列中，這些未完成的資料就單純不會被計入最終戰績（因為 `Stats` 頁只讀 `players` 現有 state 和 `history`，未完成的場次沒有進 `history`）。這是原系統的既有行為，重寫時應保留，但可以在確認 Modal 文案上更明確提醒「場上/佇列尚有 N 場未完成」。
+8. **「積分修改後重新分組」詢問**（見 11.3）：若在「調整名單」頁改過任何人的積分，回到大廳會跳出 `RegroupConfirmModal`：「有選手積分修改，是否要重新安排分組？」
+   - 「重新安排分組」→ 用 `dropSystemMatches` 清掉所有**系統建議**的佇列場次（手動分組與場上進行中的比賽都保留），Assist/Auto 引擎隨即依新積分重新產生建議；預排上場順序中指向被清掉場次的項目會一併被 prune 掉。
+   - 「保留目前分組」→ 佇列原封不動（但卡片上顯示的積分已是新值）。
+   - 兩個選擇都會清掉待詢問旗標，同一批修改只會問一次。
+
+9. **「結算」按鈕**：二次確認 Modal → `onFinish` 進 Stage 6。**不會自動把還在場上的比賽結掉**——只是停止畫面繼續產生新建議，若使用者結算時還有人在場上/佇列中，這些未完成的資料就單純不會被計入最終戰績（因為 `Stats` 頁只讀 `players` 現有 state 和 `history`，未完成的場次沒有進 `history`）。這是原系統的既有行為，重寫時應保留，但可以在確認 Modal 文案上更明確提醒「場上/佇列尚有 N 場未完成」。
 
 **Assist 與 Auto 在 UI 上的差異**（保留）：
 - Header 標籤（橘色「輔助模式」vs 藍色「自動模式」）。
@@ -433,3 +442,18 @@ score = balancePenalty*2 + (p1History+p2History)*500 + oppHistory*50
 
 > 因為 `AppState` 多了 `plannedOrder` 欄位，localStorage 的存檔版本號同步從 v1 升級到 v2（見 `state/persistence.ts`），舊的存檔會被判定為不相容並自動捨棄，不會導致讀取到 `undefined` 而壞掉。
 
+
+### 11.3 名單內修改積分 + 回大廳詢問重新分組
+
+情境：進大廳實際打了幾場之後，才發現某些人的積分明顯該更高或更低（例如新手一開始用預設 1200 進場，但實際打起來強得多）。管理員想回頭把積分調成貼近真實實力，讓之後的自動分組分得更準。
+
+- **選手名單頁的積分可直接修改**：名單表格的「積分」欄改成輸入框（`components/player/PlayerMmrInput.tsx`）。按 Enter 或移開焦點即寫入，按 Esc 取消，留白視為取消；值的範圍與新增選手一致（0–5000），不合法會跳既有的警告 Modal 並還原。解析規則集中在 `domain/mmrInput.ts`，新增選手與這裡共用，`1200abc` 這種明顯打錯的值一律視為不合法（不像 `parseInt` 會讀成 1200）。
+- **`initialMmr` 同步位移**：人工修正不是在場上打出來的升降，所以寫入新積分時 `initialMmr` 位移相同幅度，結算頁的漲跌仍只反映比賽結果。
+- **佇列/場上的選手快照一起更新**：`PLAYER_MMR_CHANGED` 會對 `queue` 與 `activeMatches` 跑 `refreshMatchPlayers`，卡片上不會留著修改前的舊積分。
+- **回大廳詢問**：修改發生在 `hasGameStarted` 之後才會把 `AppState.hasPendingMmrEdits` 設為 true（比賽還沒開始的話，第一批分組本來就是用新積分產生的，沒必要問）。大廳據此跳出 `RegroupConfirmModal`：
+  - 「重新安排分組」→ `REGROUP_APPLIED`，佇列換成 `dropSystemMatches(queue)`（只留手動分組），Assist/Auto 引擎的既有補位 effect 隨即依新積分重新產生建議；預排順序中指向被清掉場次的項目會一併 prune。
+  - 「保留目前分組」→ `REGROUP_DISMISSED`，佇列不動。
+  - 兩者都會清掉 `hasPendingMmrEdits`，同一批修改只問一次。場上進行中的比賽在兩種選擇下都不受影響。
+- 對話框文案同樣隨主題改寫（`copy.dialogs.regroup*`），經典主題即為「有選手積分修改，是否要重新安排分組？」。
+
+> `AppState` 多了 `hasPendingMmrEdits` 布林欄位。這次沒有升版存檔版本號：新欄位是純粹新增、預設 false，`loadState()` 改成把存檔疊在 `initialAppState` 之上，舊存檔（進行到一半的比賽）因此不會被丟掉。若之後是**改動既有欄位的形狀**，仍然要升 `STORAGE_VERSION`。

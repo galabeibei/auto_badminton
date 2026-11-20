@@ -40,6 +40,13 @@ export interface AppState {
   activeMatches: Match[];
   history: Match[];
   sessionCounter: number;
+  /**
+   * Set when a player rating was hand-corrected on the roster screen mid-game,
+   * so the Run screen can ask whether to re-arrange the grouping (the queued
+   * suggestions were computed from the old ratings). Cleared as soon as the
+   * user answers that question, either way.
+   */
+  hasPendingMmrEdits: boolean;
 }
 
 export const initialAppState: AppState = {
@@ -55,4 +62,5 @@ export const initialAppState: AppState = {
   activeMatches: [],
   history: [],
   sessionCounter: 0,
+  hasPendingMmrEdits: false,
 };

@@ -17,6 +17,8 @@ export * from './waitTime';
 export * from './announcement';
 export * from './recommendedMatch';
 export * from './plannedOrder';
+export * from './regroup';
+export * from './mmrInput';
 export * from './queueValidation';
 export * from './playerFactory';
 export * from './playerImport';

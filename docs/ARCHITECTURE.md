@@ -44,6 +44,8 @@ src/
 │   ├── queueValidation.ts      #   Assist / Auto 兩套不同的佇列健檢規則（見 SPEC 5.7 / 5.9）
 │   ├── playerImport.ts         #   parsePlayerCSV / convertGoogleSheetUrlToCsv / generateTestPlayers
 │   ├── playerFactory.ts        #   createPlayer（新選手物件的單一組裝入口）
+│   ├── mmrInput.ts             #   使用者手打積分的解析與範圍檢查（新增選手與名單內修改共用）
+│   ├── regroup.ts              #   dropSystemMatches：丟掉舊積分算出來的系統建議，讓引擎重排
 │   ├── announcement.ts         #   組出語音報名要唸的文字段落（實際發聲交給 lib/speech.ts）
 │   ├── matchSwap.ts            #   佇列內兩位選手互換位置的不可變運算（含跨 session 限制）
 │   ├── combinations.ts / id.ts #   小工具：C(n,3) 組合列舉、generateUUID
@@ -80,11 +82,11 @@ src/
 │
 ├── components/
 │   ├── ui/                      # 通用、無業務邏輯的原子元件（Button/Input/Modal/ConfirmModal/ScrollPicker...）
-│   ├── player/                  # PlayerIcon、PlayerSelectModal
+│   ├── player/                  # PlayerIcon、PlayerSelectModal、PlayerMmrInput（名單內可改積分的欄位）
 │   ├── match/                   # MatchCard（比賽卡片，Assist/Auto 共用）、CourtCard、CourtGrid、WaitingList
 │   ├── stats/                   # PlayerStatsTable、MatchHistoryList（Run 頁 Modal 與結算頁共用）
 │   ├── theme/                   # ThemePicker（Header 的主題選擇按鈕 + 主題圖庫）、ThemeDecorations（頁面邊緣裝飾）
-│   └── modals/                  # ResultModal、HistoryModal、StatsModal、NoScoreConfirmModal、FinishConfirmModal
+│   └── modals/                  # ResultModal、HistoryModal、StatsModal、NoScoreConfirmModal、FinishConfirmModal、RegroupConfirmModal
 │
 ├── screens/                     # 對應 SPEC 第 2 節的 7 個 stage（原 stages/*.tsx，改名反映其為「畫面」而非「舞台」）
 │   ├── HomeScreen.tsx

@@ -64,6 +64,44 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ),
       };
 
+    case 'PLAYER_MMR_CHANGED': {
+      const target = state.players.find((p) => p.id === action.playerId);
+      if (!target || target.mmr === action.mmr) return state;
+
+      const delta = action.mmr - target.mmr;
+      const players = state.players.map((p) =>
+        p.id === action.playerId
+          ? // The correction shifts the starting point by the same amount, so
+            // the final stats keep showing only what this player actually
+            // won/lost on court rather than counting the correction as form.
+            { ...p, mmr: action.mmr, initialMmr: p.initialMmr + delta }
+          : p,
+      );
+
+      return {
+        ...state,
+        players,
+        // Queued/live matches carry their own copy of each player, so refresh
+        // them or they would keep displaying the pre-correction rating.
+        queue: state.queue.map((m) => refreshMatchPlayers(m, players)),
+        activeMatches: state.activeMatches.map((m) => refreshMatchPlayers(m, players)),
+        // Only worth asking about regrouping once there is a grouping to redo;
+        // before the game starts the first one is built from these ratings anyway.
+        hasPendingMmrEdits: state.hasPendingMmrEdits || state.hasGameStarted,
+      };
+    }
+
+    case 'REGROUP_APPLIED':
+      return {
+        ...state,
+        queue: action.queue,
+        plannedOrder: prunePlannedOrder(state.plannedOrder, action.queue),
+        hasPendingMmrEdits: false,
+      };
+
+    case 'REGROUP_DISMISSED':
+      return { ...state, hasPendingMmrEdits: false };
+
     case 'QUEUE_UPDATED':
       return { ...state, queue: action.queue, plannedOrder: prunePlannedOrder(state.plannedOrder, action.queue) };
 

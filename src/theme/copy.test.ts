@@ -53,6 +53,18 @@ describe('copy', () => {
     }
   });
 
+  it('re-words the regroup prompt in every non-classic theme', () => {
+    const classic = getCopy('default');
+    expect(classic.dialogs.regroupTitle).toBe('有選手積分修改，是否要重新安排分組？');
+
+    for (const id of THEME_IDS.filter((themeId) => themeId !== 'default')) {
+      const { dialogs } = getCopy(id);
+      expect(dialogs.regroupTitle).not.toBe(classic.dialogs.regroupTitle);
+      expect(dialogs.regroupConfirm).not.toBe(classic.dialogs.regroupConfirm);
+      expect(dialogs.regroupCancel).not.toBe(classic.dialogs.regroupCancel);
+    }
+  });
+
   it('keeps the classic announcement phrasing and themes the others, naming the court', () => {
     const classic = getCopy('default').announcement;
     expect([classic.intro, classic.versus, classic.outro(2)]).toEqual(['請', '與', '上場']);

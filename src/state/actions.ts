@@ -23,6 +23,15 @@ export type AppAction =
   | { type: 'PLAYERS_ADDED'; players: Player[] }
   | { type: 'PLAYER_REMOVED'; playerId: string }
   | { type: 'PLAYER_ACTIVE_TOGGLED'; playerId: string }
+  // A hand-corrected rating ("this player is really stronger than their score
+  // says"). Mid-game this also raises `hasPendingMmrEdits`, which makes the
+  // Run screen ask about re-arranging the grouping.
+  | { type: 'PLAYER_MMR_CHANGED'; playerId: string; mmr: number }
+  // The Run screen's "re-arrange the grouping?" question, answered: applied
+  // with the regrouped queue computed by `dropSystemMatches`, or dismissed to
+  // keep the current arrangement. Both clear `hasPendingMmrEdits`.
+  | { type: 'REGROUP_APPLIED'; queue: Match[] }
+  | { type: 'REGROUP_DISMISSED' }
   // Run screen: queue reshuffles whose new shape was already computed by a
   // domain function (pruning stale suggestions, swapping players, the
   // veto/refresh action, manual add/remove, auto-adjust).
