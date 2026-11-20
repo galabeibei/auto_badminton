@@ -4,6 +4,12 @@
 
 依 ELO 風格積分自動配對對戰組合、依候位順序保證公平輪替、盡量避免同一批人重複組隊，並提供「輔助模式」（系統一次補一場建議）與「自動模式」（系統一次規劃好幾輪）兩種排點策略。
 
+## 線上試用
+
+👉 **<https://galabeibei.github.io/auto_badminton/>**
+
+不用安裝、不用註冊，手機或電腦開啟即可使用。
+
 > 這是原始 [`badminton/`](../) 專案的重寫版本。完整的功能規格與架構設計說明請見 [`docs/SPEC.md`](./docs/SPEC.md) 與 [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)。
 
 ## 功能特色
@@ -51,6 +57,8 @@ src/
 1. Fork 或建立你自己的 GitHub repository，把這個資料夾（`badminton_match/`）的內容放到 repo 根目錄。
 2. 到該 repo 的 **Settings → Pages**，「Build and deployment」的 Source 選擇 **GitHub Actions**。
 3. Push 到 `main` 分支，等待 Actions 執行完成，網站就會發布在 `https://<你的帳號>.github.io/<repo 名稱>/`。
+
+本專案的正式網址為 <https://galabeibei.github.io/auto_badminton/>。
 
 若不想用 GitHub Actions，也可以本機執行 `npm run build` 後，把 `dist/` 資料夾內容手動部署到任何靜態網站空間（`vite.config.ts` 使用相對路徑 `base: './'`，放在任何子路徑下都能正常運作）。
 
