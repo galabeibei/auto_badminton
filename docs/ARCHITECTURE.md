@@ -41,7 +41,7 @@ src/
 │   ├── sessionGrouping.ts      #   session 分組的重新洗牌（拆散重複組合，但保住模式本身的形狀）
 │   ├── tiebreak.ts             #   同分同等待時的公平排序（不用積分決勝負，並隨 session 輪轉）
 │   ├── autoAdjust.ts           #   自動微調換人邏輯
-│   ├── waitTime.ts             #   上場時的等待時間累計公式（從 UI 搬出來）
+│   ├── waitTime.ts             #   上場時的等待時間累計，以及「重排」退回時把那段等待還回去
 │   ├── recommendedMatch.ts     #   Auto 模式「推薦上場」的判斷邏輯
 │   ├── queueValidation.ts      #   Assist / Auto 兩套不同的佇列健檢規則（見 SPEC 5.7 / 5.9）
 │   ├── playerImport.ts         #   parsePlayerCSV / convertGoogleSheetUrlToCsv / generateTestPlayers

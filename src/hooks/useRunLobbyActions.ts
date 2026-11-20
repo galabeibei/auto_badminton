@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
 import {
   applyMatchResult,
-  dropSystemMatches,
   applyWaitTimeOnStart,
   checkPlayerConflict,
   createManualMatch,
+  dropSystemMatches,
   processNoScoreMatch,
   refreshMatchPlayers,
   replacePlayerInMatch,
+  revertWaitTimeOnRequeue,
   swapPlayersInQueue,
 } from '../domain';
 import type { Match, MatchOutcome, MatchResultChange, Player, QueueSlot, ReplaceOutcome } from '../domain';
@@ -112,9 +113,12 @@ export const useRunLobbyActions = () => {
         endTime: undefined,
         isManual: true,
       };
-      dispatch({ type: 'MATCH_RETURNED_TO_QUEUE', match: queuedMatch });
+      // They never played, so the wait credited when they went on is handed
+      // back - otherwise the same interval is counted again on the way out.
+      const updatedPlayers = revertWaitTimeOnRequeue(state.players, match, state.sessionStartTime);
+      dispatch({ type: 'MATCH_RETURNED_TO_QUEUE', match: queuedMatch, updatedPlayers });
     },
-    [dispatch],
+    [state.players, state.sessionStartTime, dispatch],
   );
 
   const addManualMatch = useCallback(

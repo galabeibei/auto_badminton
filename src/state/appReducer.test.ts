@@ -232,10 +232,28 @@ describe('appReducer', () => {
       const state = { ...initialAppState, activeMatches: [activeMatch], queue: [] };
       const returned = { ...queuedMatch, isManual: true, courtId: undefined, startTime: undefined };
 
-      const next = appReducer(state, { type: 'MATCH_RETURNED_TO_QUEUE', match: returned });
+      const next = appReducer(state, {
+        type: 'MATCH_RETURNED_TO_QUEUE',
+        match: returned,
+        updatedPlayers: state.players,
+      });
 
       expect(next.activeMatches).toEqual([]);
       expect(next.queue).toEqual([returned]);
+    });
+
+    it('MATCH_RETURNED_TO_QUEUE writes back the players it was given (handed-back wait time)', () => {
+      const activeMatch = { ...queuedMatch, startTime: 1000, courtId: 1 };
+      const state = { ...initialAppState, activeMatches: [activeMatch], players };
+      const refunded = players.map((p) => ({ ...p, totalWaitTime: 0 }));
+
+      const next = appReducer(state, {
+        type: 'MATCH_RETURNED_TO_QUEUE',
+        match: { ...queuedMatch, isManual: true },
+        updatedPlayers: refunded,
+      });
+
+      expect(next.players).toBe(refunded);
     });
   });
 

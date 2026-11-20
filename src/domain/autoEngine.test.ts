@@ -199,10 +199,16 @@ describe('planAutoSessionRefill', () => {
   it('continues from the highest queued sessionId when it is ahead of sessionCounter', () => {
     // Simulates the queue already holding a higher session than the counter
     // would suggest (e.g. earlier sessions were fully drained/played).
+    // Session 5 holds every active player, so there is no gap to backfill.
     const staleQueue = [
       makeTestMatch({
         id: 'existing',
         players: [players[0], players[1], players[2], players[3]],
+        sessionId: 5,
+      }),
+      makeTestMatch({
+        id: 'existing2',
+        players: [players[4], players[5], players[6], players[7]],
         sessionId: 5,
       }),
     ];
@@ -219,5 +225,83 @@ describe('planAutoSessionRefill', () => {
     const sessionIds = Array.from(new Set(result.newMatches.map((m) => m.sessionId))).sort();
     expect(sessionIds[0]).toBe(6);
     expect(result.nextSessionCounter).toBe(7);
+  });
+
+  describe('backfilling a session that lost matches', () => {
+    const twelve = Array.from({ length: 12 }, (_, i) =>
+      makeTestPlayer({ id: `q${i}`, mmr: 1500 - i * 25 }),
+    );
+    const matchOf = (ids: number[], sessionId: number, id: string) =>
+      makeTestMatch({ id, sessionId, players: ids.map((i) => twelve[i]) });
+
+    it('gives the stranded players a match in that same session', () => {
+      // Session 3 was planned as three matches; the other two were dropped
+      // when a player went 休息, leaving eight people with nothing to play.
+      const result = planAutoSessionRefill({
+        players: twelve,
+        systemQueue: [matchOf([0, 1, 2, 3], 3, 'survivor')],
+        history: [],
+        activeMatches: [],
+        mode: MatchMode.SIMILAR,
+        sessionCounter: 4,
+      });
+
+      const backfilled = result.newMatches.filter((m) => m.sessionId === 3);
+      expect(backfilled).toHaveLength(2);
+      const ids = backfilled.flatMap((m) => [...m.team1.players, ...m.team2.players].map((p) => p.id));
+      expect(ids).toHaveLength(8);
+      expect(ids).not.toContain('q0'); // already has a match in session 3
+    });
+
+    it('leaves a full session alone, wherever its players currently are', () => {
+      const result = planAutoSessionRefill({
+        players: twelve,
+        systemQueue: [matchOf([0, 1, 2, 3], 3, 'queued')],
+        history: [matchOf([4, 5, 6, 7], 3, 'played')],
+        activeMatches: [matchOf([8, 9, 10, 11], 3, 'playing')],
+        mode: MatchMode.SIMILAR,
+        sessionCounter: 4,
+      });
+
+      expect(result.newMatches.filter((m) => m.sessionId === 3)).toEqual([]);
+    });
+
+    it('counts a match pulled back off a court (重排) as still filling its slot', () => {
+      // "重排" turns the match into a manual one but keeps its session, so the
+      // four players in it must not be handed a replacement match as well.
+      const requeued = { ...matchOf([4, 5, 6, 7], 3, 'requeued'), isManual: true };
+
+      const result = planAutoSessionRefill({
+        players: twelve,
+        systemQueue: [matchOf([0, 1, 2, 3], 3, 'queued')],
+        manualQueue: [requeued],
+        history: [],
+        activeMatches: [matchOf([8, 9, 10, 11], 3, 'playing')],
+        mode: MatchMode.SIMILAR,
+        sessionCounter: 4,
+      });
+
+      expect(result.newMatches.filter((m) => m.sessionId === 3)).toEqual([]);
+    });
+
+    it('backfills even when the session buffer is otherwise full', () => {
+      const result = planAutoSessionRefill({
+        players: twelve,
+        systemQueue: [
+          matchOf([0, 1, 2, 3], 3, 'survivor'),
+          matchOf([0, 1, 2, 3], 4, 'next-a'),
+          matchOf([4, 5, 6, 7], 4, 'next-b'),
+          matchOf([8, 9, 10, 11], 4, 'next-c'),
+        ],
+        history: [],
+        activeMatches: [],
+        mode: MatchMode.SIMILAR,
+        sessionCounter: 5,
+      });
+
+      expect(result.newMatches.every((m) => m.sessionId === 3)).toBe(true);
+      expect(result.newMatches).toHaveLength(2);
+      expect(result.nextSessionCounter).toBe(5); // no new session was opened
+    });
   });
 });

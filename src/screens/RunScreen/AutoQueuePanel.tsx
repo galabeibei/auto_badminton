@@ -27,7 +27,7 @@ export const AutoQueuePanel: React.FC<QueuePanelProps> = ({
     onStaleMatchesRemoved: () =>
       showMessage(
         '排程自動更新',
-        '偵測到選手名單變更（有人休息或移除），系統已自動清除無效賽程。缺額將由系統依據等待順序自動遞補。',
+        '偵測到選手名單變更（有人休息或移除），系統已自動清除受影響的賽程。空出來的選手會依等待順序優先排進後續賽程。',
         'warning',
       ),
   });

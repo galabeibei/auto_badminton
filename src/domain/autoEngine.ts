@@ -1,6 +1,7 @@
 import { AUTO_MODE_LABELS, AUTO_SESSION_BUFFER } from './constants';
 import { createOptimizedMatch } from './pairing';
 import { resolveMatchMode, type ResolvedMode } from './modeResolver';
+import { getMatchPlayerIds } from './matchPlayers';
 import { countPairGroupings, rebalanceSessionGroups } from './sessionGrouping';
 import { rotationKey } from './tiebreak';
 import { MatchMode } from './types';
@@ -78,6 +79,12 @@ export interface AutoRefillInput {
   players: Player[];
   /** Currently queued matches that are NOT manual groupings. */
   systemQueue: Match[];
+  /**
+   * Queued manual groupings. Only used to tell who already has a match in a
+   * given session - a match pulled back off a court ("重排") becomes a manual
+   * one but keeps its session, and must not be back-filled a second time.
+   */
+  manualQueue?: Match[];
   history: Match[];
   activeMatches: Match[];
   mode: MatchMode;
@@ -97,6 +104,7 @@ export interface AutoRefillResult {
 export const planAutoSessionRefill = ({
   players,
   systemQueue,
+  manualQueue = [],
   history,
   activeMatches,
   mode,
@@ -110,7 +118,51 @@ export const planAutoSessionRefill = ({
   const queuedSessionIds = Array.from(new Set(systemQueue.map((m) => m.sessionId))).sort(
     (a, b) => a - b,
   );
-  if (queuedSessionIds.length >= AUTO_SESSION_BUFFER) return noop;
+
+  const queueCounts = new Map<string, number>();
+  const countIntoQueue = (matches: Match[]) =>
+    matches.forEach((m) => {
+      [...m.team1.players, ...m.team2.players].forEach((p) => {
+        queueCounts.set(p.id, (queueCounts.get(p.id) || 0) + 1);
+      });
+    });
+  countIntoQueue(systemQueue);
+
+  // A session can lose matches after it was planned - someone goes 休息 and
+  // every match they were in is dropped - which used to strand their three
+  // team-mates for the rest of that session, because the refill below only
+  // counts how many session *ids* are queued. Fill those gaps back in first,
+  // for anyone who has no match in that session at all (not queued, not on a
+  // court, not already played).
+  const backfilled: Match[] = [];
+  queuedSessionIds.forEach((sessionId) => {
+    const inSession = (matches: Match[]) => matches.filter((m) => m.sessionId === sessionId);
+    const queuedHere = inSession(systemQueue);
+    const spokenFor = getMatchPlayerIds([
+      ...queuedHere,
+      ...inSession(manualQueue),
+      ...inSession(activeMatches),
+      ...inSession(history),
+      ...backfilled,
+    ]);
+
+    const idle = activePlayers
+      .filter((p) => !spokenFor.has(p.id))
+      .sort(byAutoRefillPriority(queueCounts, sessionId));
+    if (idle.length < 4) return;
+
+    const batch = generateSessionMatches(idle, queuedHere[0].mode as ResolvedMode, sessionId, [
+      ...activeMatches,
+      ...systemQueue,
+      ...backfilled,
+    ]);
+    backfilled.push(...batch);
+    countIntoQueue(batch);
+  });
+
+  if (queuedSessionIds.length >= AUTO_SESSION_BUFFER) {
+    return { newMatches: backfilled, nextSessionCounter: sessionCounter };
+  }
 
   let nextSessionId = sessionCounter;
   if (queuedSessionIds.length > 0) {
@@ -120,19 +172,12 @@ export const planAutoSessionRefill = ({
 
   const sessionsNeeded = AUTO_SESSION_BUFFER - queuedSessionIds.length;
 
-  const queueCounts = new Map<string, number>();
-  systemQueue.forEach((m) => {
-    [...m.team1.players, ...m.team2.players].forEach((p) => {
-      queueCounts.set(p.id, (queueCounts.get(p.id) || 0) + 1);
-    });
-  });
-
   const sortedActivePlayers = [...activePlayers];
 
   // Everything already "on the books" is used to keep Similar/Balanced counts
   // even (decision D1): history + live courts + the existing queue, plus
   // whatever this same refill call has generated so far.
-  const recentMatches = [...history, ...activeMatches, ...systemQueue];
+  const recentMatches = [...history, ...activeMatches, ...systemQueue, ...backfilled];
   const newMatches: Match[] = [];
 
   for (let i = 0; i < sessionsNeeded; i++) {
@@ -147,17 +192,17 @@ export const planAutoSessionRefill = ({
     const batch = generateSessionMatches(sortedActivePlayers, targetMode, sessionId, [
       ...activeMatches,
       ...systemQueue,
+      ...backfilled,
       ...newMatches,
     ]);
     if (batch.length === 0) continue;
 
     newMatches.push(...batch);
-    batch.forEach((m) => {
-      [...m.team1.players, ...m.team2.players].forEach((p) => {
-        queueCounts.set(p.id, (queueCounts.get(p.id) || 0) + 1);
-      });
-    });
+    countIntoQueue(batch);
   }
 
-  return { newMatches, nextSessionCounter: nextSessionId + sessionsNeeded };
+  return {
+    newMatches: [...backfilled, ...newMatches],
+    nextSessionCounter: nextSessionId + sessionsNeeded,
+  };
 };

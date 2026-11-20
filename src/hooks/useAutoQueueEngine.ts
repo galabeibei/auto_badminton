@@ -58,6 +58,7 @@ export const useAutoQueueEngine = ({ onStaleMatchesRemoved }: UseAutoQueueEngine
     const { newMatches, nextSessionCounter } = planAutoSessionRefill({
       players: state.players,
       systemQueue,
+      manualQueue: state.queue.filter((m) => m.isManual),
       history: state.history,
       activeMatches: state.activeMatches,
       mode: state.mode,

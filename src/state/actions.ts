@@ -43,7 +43,9 @@ export type AppAction =
   // already recomputed by a domain function (waitTime/matchResult).
   | { type: 'MATCH_STARTED'; match: Match; updatedPlayers: Player[] }
   | { type: 'MATCH_FINISHED'; finishedMatch: Match; updatedPlayers: Player[] }
-  | { type: 'MATCH_RETURNED_TO_QUEUE'; match: Match }
+  // "重排": a match comes back off its court unplayed, which also hands back
+  // the wait time that was recorded when it went on.
+  | { type: 'MATCH_RETURNED_TO_QUEUE'; match: Match; updatedPlayers: Player[] }
   // Run screen: the pre-arranged "send these on next, in this order" plan.
   | { type: 'PLANNED_ORDER_ADDED'; matchId: string }
   | { type: 'PLANNED_ORDER_REMOVED'; matchId: string }

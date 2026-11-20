@@ -298,6 +298,8 @@ score = balancePenalty*2 + (p1History+p2History)*500 + oppHistory*50
    - 呼叫 `generateSessionMatches` 產生這個 session 的所有場次。
    - 把這些場次涉及到的球員的 `queueCounts` 都 +1，並重新排序剩餘候位（讓同一批產生迴圈裡，下一個 session 會優先照顧這次沒被排到的人），再產生下一個 session。
 6. 一次全部塞進 `queue`，`sessionCounter` 往前推進對應數量。
+7. **補齊已排 session 的缺額（重寫版新增）**：上面第 2 步只數「有幾個不同的 sessionId」，所以當某個 session 的場次因為有人按了「休息」而被整場清掉時，同組另外三人就會整個 session 沒球打（而且畫面還跟使用者說會自動遞補）。因此在補新 session 之前，先掃過每個已排的 session：把「在該 session 裡完全沒有任何一場（佇列中、場上、已打完都算，含重排回佇列的 manual 場次）」的 `isActive` 選手挑出來，若 ≥ 4 人就用同一套 `generateSessionMatches` 幫他們補在**同一個 sessionId** 底下。因此即使庫存已滿（2 個 session），這一步仍可能回傳新場次，但 `sessionCounter` 不會前進。
+   同一個機制也讓「比賽中途新加入的選手」能直接補進已排的 session，不必等下一輪。
 
 **另一個跟 Assist 不同的重要行為**：Auto 模式完全沒有「每次比賽結束才補一場」這種節奏，而是「維持庫存恆為 2 個 session」，使用者看到的佇列是「一批一批」出現，並且用 Session 分組顯示。
 
@@ -339,6 +341,8 @@ score = balancePenalty*2 + (p1History+p2History)*500 + oppHistory*50
    - **Auto 模式額外限制**：不允許跨 `sessionId` 交換（避免打亂「一個 session 內部湊出的公平輪替」設計），會跳警告；Assist 模式沒有這個限制（因為 Assist 只有一個 sessionId 概念鬆散地存在）。
    - 交換失敗（違反上述規則）→ 顯示錯誤 Modal，並清空選取狀態。
 5. **從場上「重排」回佇列**（`handleReturnToQueue`）：把一場 `PLAYING` 的比賽整組退回佇列最前面，並強制標記為 `isManual: true`（即使它原本是系統建議的）——因為球員在場上待的時間已經被 UI 認定成「這組合已經是使用者要保留的決定」，重排回去後不希望系統又把他們拆散。同時清空 `courtId`/`startTime`/`endTime`。
+   **重寫版修正**：退回時會用 `revertWaitTimeOnRequeue` 把「送上場那一刻記下的等待時間」還回去。因為 `lastMatchEndTime` 只在比賽**結算**時才更新，不還的話下次再送上場會從同一個時間戳再算一次，同一段等待被重複累計（等 10 分鐘上場、重排、5 分鐘後再上場 → 記成 25 分鐘而不是 15 分鐘）。`maxWaitTime` 不動：那段等待確實發生過，而且兩段裡較長的那段最後仍會被記錄。
+   同一場退回後雖然變成 manual，但仍保留原本的 `sessionId`，所以 5.9 的「補齊缺額」會把它算成「這四個人在該 session 已經有球打」，不會再補一場給他們。
 
 ---
 

@@ -140,6 +140,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         activeMatches: state.activeMatches.filter((m) => m.id !== action.match.id),
         queue: [action.match, ...state.queue],
+        players: action.updatedPlayers,
       };
 
     case 'PLANNED_ORDER_ADDED':
