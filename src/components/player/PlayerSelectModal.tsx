@@ -79,6 +79,17 @@ export const PlayerSelectModal: React.FC<Props> = ({
     onClose();
   };
 
+  /**
+   * Closing without building a group throws the selection away. The modal
+   * stays mounted while hidden, so without this the half-finished selection
+   * would still be sitting there the next time it is opened - and quietly
+   * end up in the next group the user builds.
+   */
+  const handleClose = () => {
+    setSelectedIds([]);
+    onClose();
+  };
+
   return (
     <Modal isOpen={isOpen} maxWidthClassName="max-w-4xl" zIndex={150}>
       <div className="max-h-[85vh] flex flex-col">
@@ -87,7 +98,7 @@ export const PlayerSelectModal: React.FC<Props> = ({
             <h3 className="font-bold text-lg text-slate-800">手動建立分組</h3>
             <p className="text-xs text-slate-500">可強制選擇任何上場或排程中的選手</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="關閉">
+          <button onClick={handleClose} className="text-slate-400 hover:text-slate-600" aria-label="關閉">
             <X size={24} />
           </button>
         </div>
@@ -147,7 +158,7 @@ export const PlayerSelectModal: React.FC<Props> = ({
             已選: <span className="font-bold text-blue-600 text-lg">{selectedIds.length}</span> / 4
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" onClick={handleClose}>
               取消
             </Button>
             <Button disabled={selectedIds.length !== 4} onClick={handleConfirm}>

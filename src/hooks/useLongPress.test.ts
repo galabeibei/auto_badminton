@@ -72,6 +72,69 @@ describe('useLongPress', () => {
     expect(onLongPress).not.toHaveBeenCalled();
   });
 
+  it('suppresses the emulated mouse click a touch device replays after a long press', () => {
+    const onClick = vi.fn();
+    const onLongPress = vi.fn();
+    const { result } = renderHook(() => useLongPress({ onClick, onLongPress, delay: 500 }));
+
+    act(() => {
+      // A real press-and-hold on a phone: the touch sequence runs first, then
+      // the browser replays mousedown/mouseup/click for non-touch-aware pages.
+      result.current.onTouchStart();
+      vi.advanceTimersByTime(900);
+      result.current.onTouchEnd();
+      result.current.onMouseDown();
+      result.current.onMouseUp();
+      result.current.onClick();
+    });
+
+    expect(onLongPress).toHaveBeenCalledTimes(1);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('stops swallowing clicks once the synthetic-click window has passed', () => {
+    const onClick = vi.fn();
+    const onLongPress = vi.fn();
+    const { result } = renderHook(() => useLongPress({ onClick, onLongPress, delay: 500 }));
+
+    // A browser that synthesizes no click at all must not leave the next real tap armed.
+    act(() => {
+      result.current.onTouchStart();
+      vi.advanceTimersByTime(500);
+      result.current.onTouchEnd();
+    });
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    act(() => {
+      result.current.onMouseDown();
+      vi.advanceTimersByTime(100);
+      result.current.onMouseUp();
+      result.current.onClick();
+    });
+
+    expect(onLongPress).toHaveBeenCalledTimes(1);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fire a pending long press after the element unmounts', () => {
+    const onClick = vi.fn();
+    const onLongPress = vi.fn();
+    const { result, unmount } = renderHook(() => useLongPress({ onClick, onLongPress, delay: 500 }));
+
+    act(() => {
+      result.current.onMouseDown();
+      vi.advanceTimersByTime(200);
+    });
+    unmount();
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(onLongPress).not.toHaveBeenCalled();
+  });
+
   it('allows a fresh press-release cycle to fire onClick again after a completed long press', () => {
     const onClick = vi.fn();
     const onLongPress = vi.fn();

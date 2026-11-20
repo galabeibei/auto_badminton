@@ -15,6 +15,7 @@ import {
   MMR_MAX,
   MMR_MIN,
   MMR_RANGE_HINT,
+  getMatchPlayerIds,
   convertGoogleSheetUrlToCsv,
   createPlayer,
   generateTestPlayers,
@@ -37,6 +38,10 @@ export const PlayerListScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
   const copy = useCopy();
   const { players, courtCount, hasGameStarted } = state;
+  // Removing someone who is mid-match would leave that court holding a player
+  // the roster no longer has: their result is then silently dropped when it is
+  // scored, and their team-mates keep history entries pointing at nobody.
+  const onCourtIds = getMatchPlayerIds(state.activeMatches);
 
   const [newName, setNewName] = useState('');
   const [newGender, setNewGender] = useState<Gender>(Gender.MALE);
@@ -351,7 +356,14 @@ export const PlayerListScreen: React.FC = () => {
                     </button>
                   </td>
                   <td className="p-3 text-right">
-                    <button type="button" onClick={() => removePlayer(p.id)} className="text-slate-400 hover:text-red-500 transition-colors" aria-label={`移除 ${p.name}`}>
+                    <button
+                      type="button"
+                      onClick={() => removePlayer(p.id)}
+                      disabled={onCourtIds.has(p.id)}
+                      title={onCourtIds.has(p.id) ? '此選手正在場上比賽，請先結束該場比賽' : undefined}
+                      className="text-slate-400 hover:text-red-500 transition-colors disabled:text-slate-200 disabled:hover:text-slate-200 disabled:cursor-not-allowed"
+                      aria-label={`移除 ${p.name}`}
+                    >
                       <Trash2 size={16} />
                     </button>
                   </td>

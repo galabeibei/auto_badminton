@@ -11,18 +11,40 @@ import { useCopy } from '../hooks/useCopy';
 export const StatsScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
   const copy = useCopy();
-  const [messageData, setMessageData] = useState<{ title: string; content: string; type: MessageType } | null>(null);
+  const [messageData, setMessageData] = useState<{ title: string; content: React.ReactNode; type: MessageType } | null>(null);
 
   const sortedPlayers = [...state.players].sort((a, b) => b.mmr - a.mmr);
 
-  const handleSimpleCopy = () => {
+  const handleSimpleCopy = async () => {
     const text = sortedPlayers.map((p) => `${p.name}, ${p.gender}, ${Math.round(p.mmr)}`).join('\n');
-    navigator.clipboard.writeText(text);
-    setMessageData({
-      title: '複製成功',
-      content: '已複製選手資料！\n\n您可以將資料貼在任何地方，或在下一次比賽時於 Stage 3 使用「批量匯入」直接貼上恢復積分。',
-      type: 'success',
-    });
+    try {
+      // Throws outright when the page isn't a secure context (a phone on
+      // http://192.168.x.x, say) and rejects when the browser denies access -
+      // either way the user must not be told it worked.
+      await navigator.clipboard.writeText(text);
+      setMessageData({
+        title: '複製成功',
+        content: '已複製選手資料！\n\n您可以將資料貼在任何地方，或在下一次比賽時於 Stage 3 使用「批量匯入」直接貼上恢復積分。',
+        type: 'success',
+      });
+    } catch {
+      setMessageData({
+        title: '無法自動複製',
+        content: (
+          <>
+            這個瀏覽器不允許自動複製（常見於非 HTTPS 連線）。請選取下方的資料手動複製：
+            <textarea
+              readOnly
+              value={text}
+              aria-label="選手資料"
+              onFocus={(e) => e.currentTarget.select()}
+              className="mt-3 w-full h-40 p-2 text-left text-xs font-mono bg-slate-50 text-slate-700 border border-slate-200 rounded"
+            />
+          </>
+        ),
+        type: 'warning',
+      });
+    }
   };
 
   return (

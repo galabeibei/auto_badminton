@@ -3,6 +3,9 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PlayerListScreen } from './PlayerListScreen';
 import { renderWithAppState } from '../test/renderWithAppState';
+import { initialAppState, Stage } from '../state/appState';
+import { makeTestMatch, makeTestPlayer } from '../domain/testHelpers';
+import { MatchStatus } from '../domain';
 
 describe('PlayerListScreen', () => {
   it('adds a player through the form and shows them in the roster table', async () => {
@@ -58,6 +61,32 @@ describe('PlayerListScreen', () => {
 
     expect(screen.getByRole('button', { name: /休息中/ })).toBeInTheDocument();
     expect(screen.getByText('上場: 0')).toBeInTheDocument();
+  });
+
+  it('refuses to remove a player who is still on a court', async () => {
+    const user = userEvent.setup();
+    const playing = ['OnCourt1', 'OnCourt2', 'OnCourt3', 'OnCourt4'].map((name) =>
+      makeTestPlayer({ id: name, name }),
+    );
+    const resting = makeTestPlayer({ id: 'Benched', name: 'Benched' });
+
+    renderWithAppState(<PlayerListScreen />, {
+      ...initialAppState,
+      stage: Stage.PLAYER_LIST,
+      hasGameStarted: true,
+      players: [...playing, resting],
+      activeMatches: [
+        makeTestMatch({ id: 'm1', players: playing, status: MatchStatus.PLAYING, courtId: 1 }),
+      ],
+    });
+
+    // Deleting them would leave court 1 holding a player the roster no longer has.
+    expect(screen.getByRole('button', { name: '移除 OnCourt1' })).toBeDisabled();
+
+    const removable = screen.getByRole('button', { name: '移除 Benched' });
+    expect(removable).not.toBeDisabled();
+    await user.click(removable);
+    expect(screen.queryByText('Benched')).not.toBeInTheDocument();
   });
 
   describe('editing a rating in the roster table', () => {
